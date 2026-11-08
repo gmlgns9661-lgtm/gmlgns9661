@@ -1120,9 +1120,24 @@ function togglePhone() {
   P.phone = !P.phone; P.parts.phone.visible = P.phone; SFX.pop();
   float(P.phone ? '📱 폰 집중 모드: 불쾌지수 멈춤 · 시야 좁고 느림' : '📱 폰 집중 해제', { x: P.x, y: 2.3, z: P.z }, '#9fe8ff', 13, 1.6);
 }
+// 오버이어 헤드셋: 머리 위로 넘어가는 밴드 + 양쪽 귀 덮개
+function makeHeadset(head, color = '#222') {
+  const g = new THREE.Group(); head.add(g);
+  const band = mesh(new THREE.TorusGeometry(.275, .028, 8, 24, Math.PI), M(color), 0, .02, -.02, g, false);
+  band.rotation.z = 0;                          // 반원이 위로
+  for (const s of [-1, 1]) {
+    const cup = mesh(new THREE.CylinderGeometry(.1, .1, .07, 18), M(color), s * .275, 0, -.01, g, false);
+    cup.rotation.z = Math.PI / 2;
+    const pad = mesh(new THREE.CylinderGeometry(.075, .075, .02, 16), M('#3a3a44'), s * .238, 0, -.01, g, false);
+    pad.rotation.z = Math.PI / 2;
+  }
+  return g;
+}
 function toggleEar() {
   if (!G || G.phase === 'end') return;
   P.earMode = !P.earMode; SFX.pop();
+  if (P.headset) { P.headset.parent && P.headset.parent.remove(P.headset); P.headset = null; }
+  if (P.earMode) P.headset = makeHeadset(P.parts.head, P.ear ? '#7a5cff' : '#222');
   if (P.earMode) { stopVoice(); $('announce').style.display = 'none'; $('warn').classList.remove('show'); }
   float(P.earMode ? (P.ear ? '🎧 노캔 이어폰 모드: 불쾌지수 멈춤 · 방송·경보 안 들림' : '🎧 이어폰 모드: 불쾌지수 덜 오름 · 방송·경보 안 들림') : '🎧 이어폰 뺌', { x: P.x, y: 2.3, z: P.z }, '#c8b0ff', 13, 1.8);
 }
@@ -3533,7 +3548,7 @@ Person.prototype.setActivity = function (a) {
   if (!a) return;
   const { head, root } = this.parts;
   if (a === 'music') {
-    for (const s of [-1, 1]) this.actProps.push(mesh(new THREE.SphereGeometry(.045, 8, 6), M('#f4f4f4'), s * .25, -.01, .02, head, false));
+    this.actProps.push(makeHeadset(head, pick(['#222', '#f4f4f4', '#ff6b8a', '#4a7bd6'])));
   }
   if (a === 'game') {
     const ph = mesh(box(.2, .1, .02), new THREE.MeshStandardMaterial({ color: '#111', emissive: '#4ad8ff', emissiveIntensity: .8 }), 0, .78, .34, root, false);
@@ -3542,7 +3557,7 @@ Person.prototype.setActivity = function (a) {
   if (a === 'movie') {   // 폰 가로로 들고 영화
     const ph = mesh(box(.24, .13, .02), new THREE.MeshStandardMaterial({ color: '#111', emissive: '#ff8a3d', emissiveIntensity: .9 }), 0, .8, .34, root, false);
     ph.rotation.x = -.75; this.actProps.push(ph); this.movieScreen = ph.material;
-    for (const s of [-1, 1]) this.actProps.push(mesh(new THREE.SphereGeometry(.045, 8, 6), M('#f4f4f4'), s * .25, -.01, .02, head, false));
+    this.actProps.push(makeHeadset(head, pick(['#222', '#f4f4f4', '#ff6b8a', '#4a7bd6'])));
   }
   if (a === 'toon') {    // 폰 세로로 들고 웹툰 스크롤
     const ph = mesh(box(.1, .19, .02), new THREE.MeshStandardMaterial({ color: '#111', emissive: '#f4f4f4', emissiveIntensity: .7 }), .06, .78, .32, root, false);
