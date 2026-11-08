@@ -264,7 +264,9 @@
   </table>
   <h2>😤 불쾌지수</h2>
   <table>
-    <tr><td>📈</td><td>사람과 <b>닿아 있을수록</b>, 비집을수록, 빌런에게 당할수록 올라감 → <b>100이 되면 싸움 발생 = 실패</b></td></tr>
+    <tr><td>📈</td><td>출근길이라 <b>30에서 시작</b>. 사람과 닿을수록·서 있을수록·빌런에게 당할수록 올라감 → <b>100이 되면 😵 출근 중 쓰러짐 = 실패</b></td></tr>
+    <tr><td>🔨</td><td>옆 사람 불쾌지수가 100이면 싸움 → 뿅망치 미니게임. 끝나면 <b>내 불쾌지수 +50</b></td></tr>
+    <tr><td>🪑</td><td>앉으면 불쾌지수 <b>-30</b></td></tr>
     <tr><td>🧍</td><td>개찰구·승강장은 <b>발자국 줄 끝에 서기</b>. 줄 앞이나 중간에 끼어들면 주변 사람 불쾌지수↑ (머리 위 😒😠🤬)</td></tr>
     <tr><td>🤰</td><td><b>임산부 배려석</b>(분홍)은 늘 비어 있지만… 앉으면 주변 시선 폭발 = 실패</td></tr>
     <tr><td>📉</td><td>아무와도 안 닿으면 천천히 내려감 · <b>빌런 참교육 성공 시 -15</b> · 📱폰 보기 중엔 덜 오름</td></tr>
@@ -773,6 +775,7 @@ function newGame(carry = null) {
   const early = carry && carry.early;
   const startZ = !carry ? 1.6 : carry.late ? 2.3 : early ? -2.8 : .4;
   makePlayer(0, startZ, Math.PI);
+  if (!carry) P.disc = 30;
   if (carry) { P.manner = carry.manner; P.counters = carry.counters; P.bag = carry.bag; P.phone = carry.phone; P.parts.phone.visible = P.phone; setBagLook(); P.disc = carry.disc * .7; P.ear = carry.ear; P.caffeine = carry.caffeine; }
   for (const side of [0, 1]) for (const s of seats[side]) {
     if (isPink(s)) {
@@ -1205,7 +1208,7 @@ function updatePlayer(dt) {
   let moved = 0, dx = 0, dz = 0;
   if (inp.m > .15) {
     dx = inp.x / Math.hypot(inp.x, inp.z); dz = inp.z / Math.hypot(inp.x, inp.z);
-    const sp = 2.1 * inp.m * (P.passing ? .55 : 1) * (P.phone ? .6 : 1);
+    const sp = 2.1 * inp.m * (P.bag === 'back' ? 1.3 : 1) * (P.passing ? .55 : 1) * (P.phone ? .6 : 1);
     P.x += dx * sp * dt; P.z += dz * sp * dt;
     P.rot = Math.atan2(dx, dz); moved = 1;
   }
@@ -1218,6 +1221,7 @@ function updatePlayer(dt) {
   for (const n of people) {
     if (n === P || !n.solid() || n === P.passing) continue;
     if (anchored) continue;            // 줄/단말기 앞에서 버티는 중: 밀리지 않음
+    if (G.stage === 1 && n.qLine) continue;   // 줄 선 사람들 사이는 비켜 지나갈 수 있음 (끼임 방지)
     // 같은 줄에선 바로 앞사람하고만 부딪힘 (새치기 시도용)
     if (P.qLine && n.qLine === P.qLine && P.qLine.q.indexOf(n) !== P.qLine.q.indexOf(P) - 1) continue;
     const ddx = P.x - n.x, ddz = P.z - n.z, d = Math.hypot(ddx, ddz), minD = pRadius() + NPC_R;
@@ -1282,6 +1286,8 @@ function relaxCrowd(dt) {
 function currentStop() { if (G.endStop != null) return G.endStop; return G.phase === 'arrive' ? G.next : G.next - 1; }
 function playerSit(s) {
   if (s.pink) return pregnantSeatFail(s);
+  P.disc = Math.max(0, (P.disc || 0) - 30);
+  float('😌 휴… 불쾌지수 -30', { x: P.x, y: 2.4, z: P.z }, '#a8ffb0', 16, 1.6);
   let bounced = false;
   for (const b of G.bags) if (b.seat === s && !b.back) {
     b.back = true; b.t = 0; b.dur = .6; [b.sx, b.ex] = [b.ex, b.sx]; [b.sz, b.ez] = [b.ez, b.sz]; bounced = true;
@@ -1504,7 +1510,7 @@ function drawCommonHUD() {
   const w = $('warn');
   if (w.classList.contains('show')) w.style.background = Math.floor(G.clock * 6) % 2 ? w.dataset.c1 : w.dataset.c2;
   $('btnBag').className = 'b' + (P.bag === 'front' ? ' front' : '');
-  $('btnBag').innerHTML = P.bagSwitch > 0 ? '🎒 메는 중…' : (P.bag === 'back' ? '🎒 뒤로<small>빠름·걸림주의</small>' : '🎒 앞으로<small>느림·매너↑</small>');
+  $('btnBag').innerHTML = P.bagSwitch > 0 ? '🎒 메는 중…' : (P.bag === 'back' ? '🎒 뒤로<small>걸음↑·걸림주의</small>' : '🎒 앞으로<small>느림·매너↑</small>');
   $('btnPhone').className = 'b' + (P.phone ? ' on' : '');
   $('btnPhone').innerHTML = P.phone ? '📱 집중 중<small>불쾌지수 멈춤</small>' : '📱 폰<small>집중·시야↓</small>';
   $('btnEar').className = 'b' + (P.earMode ? ' on' : '');
@@ -1684,7 +1690,8 @@ function newStage1() {
   for (const g of gates) g.L = { x: g.gx, z0: GATE_Z + .8, gap: .62, q: [], gate: g, d: g.i };
   gateLines = gates.map(g => g.L);
   makePlayer(rand(-1, 1), 5.6, Math.PI);
-  P.disc = 0;
+  P.disc = 30;                       // 출근길은 원래 기분이 별로
+  P.discLvl = 0;
   spawnItems();
   for (let i = 0; i < Math.round(LINE.crowd * .65); i++) spawnFlow(rand(.2, 5.5));
   $('endScreen').classList.remove('show'); $('big').classList.remove('show');
@@ -2109,7 +2116,7 @@ function addDisc(v) {
   const cur = P.discLvl || 0;
   if (lvl > cur) { P.discLvl = lvl; float('💭 ' + pick(MONO[lvl - 1][1]), { x: P.x, y: 2.5, z: P.z }, lvl >= 3 ? '#ff8a8a' : '#e8ecff', 14, 1.8); }
   else if (lvl < cur && P.disc < MONO[cur - 1][0] - 15) P.discLvl = lvl;
-  if (P.disc >= 100) fight();
+  if (P.disc >= 100) collapse();
 }
 function calm(v) { if (P) P.disc = clamp((P.disc || 0) - v, 0, 100); }
 function updateDisc(dt) {
@@ -2481,10 +2488,14 @@ function stepForward() {
   return true;
 }
 // 줄 끝이 가까우면(1.4m) 버튼으로 바로 줄 서기
+// 줄 근처(어느 칸이든 1.6m 안)면 그 줄 끝으로 합류 가능
 function nearTail(lines) {
   if (P.qLine || P.boardedTrain) return null;
-  let best = null, bd = 1.4;
-  for (const L of lines) { if (L.gate && (L.gate.blockedBy || L.gate.openFor === P)) continue; const t = slotPos(L, L.q.length); const d = Math.hypot(P.x - t.x, P.z - t.z); if (d < bd) { bd = d; best = L; } }
+  let best = null, bd = 1.6;
+  for (const L of lines) {
+    if (L.gate && (L.gate.blockedBy || L.gate.openFor === P)) continue;
+    for (let k = 0; k <= L.q.length; k++) { const t = slotPos(L, k); const d = Math.hypot(P.x - t.x, P.z - t.z) + (k < L.q.length ? .15 : 0); if (d < bd) { bd = d; best = L; } }
+  }
   return best;
 }
 function joinByButton(L) {
@@ -2764,7 +2775,7 @@ function playerQueue(lines, dt, onJoin) {
     for (const L of lines) {
       if (L.gate && (L.gate.blockedBy || L.gate.openFor === P)) continue;
       const tail = slotPos(L, L.q.length);
-      if (Math.hypot(P.x - tail.x, P.z - tail.z) < .6) {
+      if (Math.hypot(P.x - tail.x, P.z - tail.z) < .7) {
         joinQueue(P, L); SFX.pop();
         if (onJoin) onJoin(L);
         float(L.gate ? `줄 섰다! ${L.q.length}번째` : `줄 섰다! ${L.q.length}번째 (${L.d + 2}-${L.d + 1} 문)`, { x: P.x, y: 2.3, z: P.z }, '#ffe066', 14, 1.6);
@@ -2784,7 +2795,7 @@ function playerQueue(lines, dt, onJoin) {
     if (d > .9 && inp.m > .15 && !(queueGap() > 0 && P.z < sp.z)) { leaveQueue(P); float('줄에서 빠졌다…', { x: P.x, y: 2.2, z: P.z }, '#cfd6ff', 13); return; }
     // 손 놓으면 내 칸에 붙어 섬 (앞으로 가는 건 버튼/조이스틱으로)
     if (inp.m < .15 && d > .04 && P.stun <= 0 && !P.stuck) {
-      const k = Math.min(1, 2.4 * dt / d); P.x += (sp.x - P.x) * k; P.z += (sp.z - P.z) * k; P.rot = Math.PI; P.moving = .6;
+      const k = Math.min(1, 2.8 * dt / d); P.x += (sp.x - P.x) * k; P.z += (sp.z - P.z) * k; P.rot = d > .2 ? Math.atan2(sp.x - P.x, sp.z - P.z) : Math.PI; P.moving = d > .1 ? 1 : .4;
     }
     // 앞이 비었는데 안 가면 뒷사람 재촉
     if (queueGap() > 0) {
@@ -2827,7 +2838,7 @@ function checkCutting(lines, dt) {
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 const kstDay = (offset = 0) => new Date(Date.now() + 9 * 3600e3 + offset * 86400e3).toISOString().slice(0, 10);
-const RESULT = { seat: '🪑 착석', stand: '🧍 서서 도착', late: '⏰ 지각', fight: '💥 싸움', pink: '🤰 배려석' };
+const RESULT = { collapse: '😵 쓰러짐', seat: '🪑 착석', stand: '🧍 서서 도착', late: '⏰ 지각', fight: '💥 싸움', pink: '🤰 배려석' };
 const RK = { db: null, uid: null, runs: new Map(), mine: null, ready: false, state: 'loading', daily: true };
 function lsGet(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
@@ -2895,6 +2906,7 @@ async function submitRun(total, kind) {
   if (kind === 'seat') st.wins = (st.wins || 0) + 1;
   if (kind === 'late') st.lates = (st.lates || 0) + 1;
   st.fights = (st.fights || 0) + RUN.fights;
+  if (kind === 'collapse') st.collapses = (st.collapses || 0) + 1;
   if (st.lastDay !== today) st.streak = st.lastDay === yday ? (st.streak || 0) + 1 : 1;
   st.lastDay = today;
   lsSet('ss.stats', st);
@@ -3312,7 +3324,7 @@ function updateBonk(dt) {
   if (BONK.t >= BONK.dur && !BONK.ending) {
     BONK.ending = true;
     if (BONK.foe) float('🤝 …죄송합니다', { x: BONK.foe.x, y: 2.2, z: BONK.foe.z }, '#a8ffb0', 16, 1.4);
-    $('bResult').textContent = `뿅 ×${BONK.hits}! 속이 시원~ 😌 스트레스 0`;
+    $('bResult').textContent = `뿅 ×${BONK.hits}! 속은 시원한데… 불쾌지수 +50 😮‍💨`;
     SFX.sit();
     setTimeout(endBonk, 1400);
   }
@@ -3322,14 +3334,33 @@ function endBonk() {
   bonk3dEnd();
   const foe = BONK.foe, pink = BONK.reason === 'pink';
   RUN.fights++; RUN.bonks += BONK.hits;
-  P.disc = 0; P.discLvl = 0;
   if (foe) { foe.disc = 0; foe.mood = 2.5; foe.stun = 1.2; }
   for (const n of people) if (n.kind === 'npc' && dist(n, P) < 2.2) n.disc = Math.min(n.disc || 0, 35);
   const pen = pink ? 25 : 10;
   P.manner -= pen;
   if (G.stage === 1 && G.timeLeft != null) G.timeLeft -= 4;   // 싸우느라 시간 손해
-  float(`(매너 -${pen}) 휴… 다음부턴 참자`, { x: P.x, y: 2.3, z: P.z }, '#ffb3b3', 14, 2);
+  float(`싸움의 대가: 불쾌지수 +50 · 매너 -${pen}`, { x: P.x, y: 2.3, z: P.z }, '#ffb3b3', 14, 2);
   BONK.on = false; G.paused = false;
+  P.disc = Math.min(100, (P.disc || 0) + 50);
+  if (P.disc >= 100) collapse();
+}
+// 불쾌지수 100: 출근 중 쓰러짐 (실패)
+function collapse() {
+  if (!G || G.phase === 'end' || BONK.on) return;
+  G.phase = 'end'; G.endStop = G.stage === 2 ? currentStop() : 0; G.endLabel = '😵 출근 중 쓰러짐';
+  P.stuck = null; P.search = null; P.disc = 100; stopVoice();
+  if (G.tapGame) { G.tapGame = null; $('tapGame').classList.remove('show'); }
+  $('cutin').classList.remove('show'); $('warn').classList.remove('show'); laneMesh.material.opacity = 0; lane2.material.opacity = 0;
+  P.parts.root.rotation.x = -1.35; P.parts.root.position.y = .25; P.stun = 99;
+  for (const n of people) if (n.kind === 'npc' && dist(n, P) < 2.5) { n.mood = 3; n.rot = Math.atan2(P.x - n.x, P.z - n.z); }
+  G.shake = .6; SFX.fail();
+  float('괜찮으세요?!', { x: P.x + .6, y: 2.2, z: P.z }, '#fff', 15, 2);
+  $('big').innerHTML = '😵 출근 중 쓰러짐'; $('big').classList.add('show');
+  setTimeout(() => showEnd(false, [
+    ...stage1Rows(),
+    ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
+    ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
+  ], { kind: 'collapse', emoji: '😵🚑', title: '출근 중 쓰러짐', desc: '불쾌지수 100… 사람 숲에서 결국 쓰러졌다. 오늘은 병가.', rank: '🚑 응급 출근러' }), 2000);
 }
 
 // ── 카드 태그 리듬게임: 줄어드는 링이 카드에 닿는 순간 탭 ──
