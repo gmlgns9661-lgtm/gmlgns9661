@@ -1201,9 +1201,11 @@ function updatePlayer(dt) {
 
   // 충돌 + 비집기
   let pushing = null, bestDot = .55;
+  const anchored = !moved && G.stage === 1 && (P.qLine || readerGate());
   if (P.passing && (P.passing.sitting || !people.includes(P.passing) || dist(P, P.passing) > pRadius() + NPC_R + .05)) P.passing = null;
   for (const n of people) {
     if (n === P || !n.solid() || n === P.passing) continue;
+    if (anchored) continue;            // 줄/단말기 앞에서 버티는 중: 밀리지 않음
     // 같은 줄에선 바로 앞사람하고만 부딪힘 (새치기 시도용)
     if (P.qLine && n.qLine === P.qLine && P.qLine.q.indexOf(n) !== P.qLine.q.indexOf(P) - 1) continue;
     const ddx = P.x - n.x, ddz = P.z - n.z, d = Math.hypot(ddx, ddz), minD = pRadius() + NPC_R;
@@ -1362,7 +1364,7 @@ function update(dt) {
   if (G.phase !== 'end') {
     G.t += dt;
     if (G.phase === 'run') {
-      for (const o of seatedNpcs()) if (o.sig && !o.sigShown && G.t >= o.sigAt) { o.sigShown = true; o.setSignal(o.sig); if (TRUE_SIG.includes(o.sig) && o.act) { const was = o.act; o.setActivity(null); float(was === 'sleep' ? '(번쩍 깸)' : was === 'book' ? '(책 덮음)' : was === 'game' ? '(게임 끔)' : '(이어폰 뺌)', { x: o.x, y: 1.9, z: o.z }, '#e8ecff', 12, 1.2); } }
+      for (const o of seatedNpcs()) if (o.sig && !o.sigShown && G.t >= o.sigAt) { o.sigShown = true; o.setSignal(o.sig); if (TRUE_SIG.includes(o.sig) && o.act) { const was = o.act; o.setActivity(null); float(was === 'sleep' ? '(번쩍 깸)' : was === 'book' ? '(책 덮음)' : was === 'game' ? '(게임 끔)' : was === 'movie' ? '(영화 일시정지)' : was === 'toon' ? '(웹툰 닫음)' : '(이어폰 뺌)', { x: o.x, y: 1.9, z: o.z }, '#e8ecff', 12, 1.2); } }
       const v = SCHEDULE[G.next];
       if (v && !G.warn && G.runDur - G.t <= 3.2) { G.warn = v; showWarn(v); SFX.siren(8); }
       if (!G.saidThis && G.runDur - G.t <= 7) { G.saidThis = true; announce(sayThis(STATIONS[G.next]), 5); }
@@ -1597,6 +1599,11 @@ adopt(stationGroup, function buildStation() {
       pad.name = 'pad';
     }
   }
+  // 단말기 앞 구역 (여기 서면 내 차례)
+  for (const gx of GATE_X) {
+    const z = mesh(new THREE.PlaneGeometry(.62, .78), new THREE.MeshBasicMaterial({ color: '#3ee08a', transparent: true, opacity: .28, depthWrite: false }), gx, .009, GATE_Z + .7, scene, false);
+    z.rotation.x = -Math.PI / 2;
+  }
   // 개찰구 줄서기 발자국
   for (const gx of GATE_X) for (let k = 0; k < 8; k++) {
     const m = mesh(new THREE.PlaneGeometry(.3, .16), new THREE.MeshBasicMaterial({ color: '#e8c64a', transparent: true, opacity: k ? .45 : .9 }), gx, .007, GATE_Z + .8 + k * .62, scene, false);
@@ -1693,7 +1700,7 @@ function sendToGate(n) {
 function updateGates(dt) {
   for (const g of gates) {
     // NPC 차례
-    if (!g.busy && !g.blockedBy) {
+    if (!g.busy && !g.blockedBy && !inReader(g)) {
       const who = g.L.q[0];
       if (who && who !== P && who.kind === 'npc' && who.stun <= 0 && Math.hypot(who.x - g.gx, who.z - g.L.z0) < .2) {
         g.L.q.shift(); who.qLine = null;
@@ -1749,13 +1756,18 @@ function guardFlaps(prevZ) {
   }
 }
 // 내가 쓰는 개찰구: 그 개찰구 줄에 서 있으면 그 줄, 아니면 단말기 앞 위치로 판단
+// 단말기 앞 구역(바닥 초록 박스): 여기 서 있으면 무조건 내 차례
+function inReader(g) { return Math.abs(P.x - g.gx) < .34 && P.z > GATE_Z + .3 && P.z < GATE_Z + 1.12; }
+function readerGate() { if (!G || G.stage !== 1 || G.phase !== 'gate') return null; for (const g of gates) if (inReader(g)) return g; return null; }
 function myGate() {
+  const r = readerGate(); if (r) return r;
   if (P.qLine && P.qLine.gate) return P.qLine.gate;
   return gateAtPlayer();
 }
 // 'go' = 내 차례 / 'wait' = 줄 서서 대기 / 'busy' = 앞사람 찍는 중 / 'cut' = 줄 안 서고 앞에 섬
 function myGateTurn(g) {
   if (g.busy === P || g.openFor === P) return 'go';
+  if (inReader(g)) return (g.busy && g.busy !== P) ? 'busy' : 'go';
   if (P.qLine === g.L) {
     const i = g.L.q.indexOf(P);
     if (i > 0) return 'wait';
@@ -1783,7 +1795,9 @@ function action1() {
   }
   if (P.bagSwitch > 0 || G.phase !== 'gate') return;
   if (stepForward()) return;
-  if (nearGateVillain()) return cough1();
+  const rg = readerGate();
+  const myTurnHere = rg && !rg.blockedBy && myGateTurn(rg) === 'go';
+  if (nearGateVillain() && !myTurnHere) return cough1();
   const g = myGate();
   if (!g) { float(P.qLine ? '' : '발자국 줄 끝에 서세요 🧍', { x: P.x, y: 2, z: P.z }, '#cfd6ff', 12); return; }
   if (g.blockedBy) { float('막혀 있다… 옆 개찰구 줄로!', { x: P.x, y: 2, z: P.z }, '#ffb3b3', 13); return; }
@@ -1796,7 +1810,12 @@ function action1() {
     for (const n of g.L.q.slice(0, 2)) if (n !== P) annoy(n, 15);
     return;
   }
-  if (!P.qLine) joinQueue(P, g.L, 0);       // 빈 줄 맨 앞에 바로 선 경우
+  if (P.qLine !== g.L || g.L.q.indexOf(P) !== 0) {
+    const was = P.qLine === g.L ? g.L.q.indexOf(P) : (P.qLine ? -1 : g.L.q.length);
+    if (P.qLine) leaveQueue(P);
+    if (was > 0 && g.L.q.length) { for (const n of g.L.q.slice(0, 2)) annoy(n, 12); float('어? 새치기…? 😒', { x: P.x, y: 2.4, z: P.z + .6 }, '#ffb3b3', 13); }
+    joinQueue(P, g.L, 0);
+  }
   g.busy = P;
   // 카드 꺼내기
   if (P.search) {
@@ -2011,13 +2030,14 @@ function drawHUD1() {
   if (G.phase !== 'gate') label = '—';
   else if (G.tapGame) { label = '💳<br>지금!'; cls = 'ready'; }
   else if (P.stuck) { label = `🎒 빼기!<br><small>${P.stuck.taps}/${P.stuck.need} 연타</small>`; cls = 'mash'; }
-  else if (nearGateVillain()) { label = `헛기침<br><small>${G.gateV.coughs}/3</small>`; cls = 'cough'; }
+  else if (nearGateVillain() && !(readerGate() && !readerGate().blockedBy && myGateTurn(readerGate()) === 'go')) { label = `헛기침<br><small>${G.gateV.coughs}/3</small>`; cls = 'cough'; }
   else if (P.search && !P.search.auto) { label = `🎒 카드 찾기<br><small>${P.search.taps}/${P.search.need} 연타</small>`; cls = 'mash'; }
   else if (queueGap() > 0) { label = '⬆ 앞으로!<br><small>앞이 비었어요</small>'; cls = 'ready'; }
   else if ((g = myGate()) && g.openFor === P) { label = '⬆<br>통과!'; cls = 'ready'; }
   else if (g && !g.blockedBy) {
     const turn = myGateTurn(g);
     if (turn === 'go') { label = (P.phone ? '📱 폰 찍기' : '💳 카드 찍기') + '<br><small>내 차례!</small>'; cls = 'ready'; }
+    else if (turn === 'busy' && inReader(g)) label = '⏳<br><small>앞사람 통과 중</small>';
     else if (turn === 'busy') label = '⏳<br><small>앞사람 찍는 중</small>';
     else if (turn === 'wait') label = `🧍 ${playerQueueIdx() + 1}번째<br><small>앞에 ${playerQueueIdx()}명</small>`;
     else { label = `🧍 줄 서세요<br><small>앞에 ${g.L.q.length}명</small>`; cls = 'cough'; }
@@ -2087,11 +2107,12 @@ function updateDisc(dt) {
   const reach = pRadius() + NPC_R + .12;
   let touch = 0, near = null;
   const touching = new Set();
-  const qMul = P.qLine ? .3 : 1;       // 줄 서 있을 땐 서로 덜 예민함
+  const queued = !!P.qLine || !!readerGate();
+  const qMul = queued ? .15 : 1;       // 줄 서 있을 땐 서로 닿는 게 정상
   for (const n of people) {
     if (n === P || n.sitting || n.state === 'leave') continue;
     const d = dist(P, n);
-    if (d < reach) { touch++; touching.add(n); if (!near || d < dist(P, near)) near = n; annoy(n, 1.5 * LINE.disc * qMul * dt); }
+    if (d < reach) { touch++; touching.add(n); if (!near || d < dist(P, near)) near = n; if (!queued) annoy(n, 1.5 * LINE.disc * dt); }
   }
   updateNpcDisc(dt, touching);
   P.touch = touch; P.touchNear = near;
@@ -2437,7 +2458,7 @@ function joinQueue(p, L, idx = L.q.length) {
 }
 function leaveQueue(p) { if (!p.qLine) return; const L = p.qLine; L.q = L.q.filter(x => x !== p); p.qLine = null; if (p === P) P.slot = null; }
 // 내 순번 i, 서 있는 칸 P.slot. 앞이 비면 P.slot > i
-const queueGap = () => (P.qLine && P.slot != null) ? P.slot - P.qLine.q.indexOf(P) : 0;
+const queueGap = () => (P.qLine && P.slot != null && !readerGate()) ? P.slot - P.qLine.q.indexOf(P) : 0;
 function stepForward() {
   if (queueGap() <= 0) return false;
   P.slot--; SFX.step ? SFX.step() : tone(320, 0, .05, 'triangle', .04);
@@ -2721,6 +2742,9 @@ function playerQueue(lines, dt, onJoin) {
     }
   } else if (lines.includes(P.qLine)) {
     const L = P.qLine;
+    // 단말기 앞 구역에 들어와 있으면 줄 위치로 끌어당기지 않음 (다른 개찰구면 그 줄에서 빠짐)
+    const rg = readerGate();
+    if (rg) { if (L.gate !== rg) leaveQueue(P); return; }
     if (P.slot == null) P.slot = L.q.indexOf(P);
     // 조이스틱으로 앞 칸까지 걸어가도 전진
     if (queueGap() > 0 && inp.m > .15) { const nx = slotPos(L, P.slot - 1); if (Math.hypot(P.x - nx.x, P.z - nx.z) < .35) { P.slot--; P.gapT = 0; } }
@@ -3349,12 +3373,12 @@ $('bonk').addEventListener('pointerdown', e => { e.preventDefault(); bonkHit(); 
 
 // ═════════════════════════ 앉은 승객의 행동 (음악·폰게임·독서·꿀잠) ═════════════════════════
 // 오래 갈 사람일수록 꿀잠·독서, 곧 내릴 사람은 음악·가벼운 폰게임 경향 (절대 규칙은 아님 → 신호와 함께 추리)
-const ACTS = { music: '🎧', game: '🎮', book: '📖', sleep: '💤' };
+const ACTS = { music: '🎧', game: '🎮', book: '📖', sleep: '💤', movie: '🎬', toon: '🦸' };
 function pickActivity(stop) {
   const d = stop >= BEYOND ? 99 : stop - ((G && G.next) || 1);
-  const w = d >= 4 ? [['sleep', 35], ['book', 30], ['game', 25], ['music', 10]]
-          : d >= 2 ? [['game', 35], ['music', 35], ['book', 20], ['sleep', 10]]
-          : [['music', 45], ['game', 30], ['book', 15], ['sleep', 10]];
+  const w = d >= 4 ? [['sleep', 25], ['movie', 25], ['book', 20], ['game', 15], ['toon', 10], ['music', 5]]
+          : d >= 2 ? [['game', 25], ['toon', 25], ['music', 25], ['movie', 10], ['book', 10], ['sleep', 5]]
+          : [['music', 40], ['toon', 25], ['game', 20], ['book', 10], ['movie', 5]];
   let r = rnd() * 100; for (const [k, v] of w) { r -= v; if (r <= 0) return k; } return 'music';
 }
 Person.prototype.setActivity = function (a) {
@@ -3370,6 +3394,15 @@ Person.prototype.setActivity = function (a) {
   if (a === 'game') {
     const ph = mesh(box(.2, .1, .02), new THREE.MeshStandardMaterial({ color: '#111', emissive: '#4ad8ff', emissiveIntensity: .8 }), 0, .78, .34, root, false);
     ph.rotation.x = -.9; this.actProps.push(ph); this.gameScreen = ph.material;
+  }
+  if (a === 'movie') {   // 폰 가로로 들고 영화
+    const ph = mesh(box(.24, .13, .02), new THREE.MeshStandardMaterial({ color: '#111', emissive: '#ff8a3d', emissiveIntensity: .9 }), 0, .8, .34, root, false);
+    ph.rotation.x = -.75; this.actProps.push(ph); this.movieScreen = ph.material;
+    for (const s of [-1, 1]) this.actProps.push(mesh(new THREE.SphereGeometry(.045, 8, 6), M('#f4f4f4'), s * .25, -.01, .02, head, false));
+  }
+  if (a === 'toon') {    // 폰 세로로 들고 웹툰 스크롤
+    const ph = mesh(box(.1, .19, .02), new THREE.MeshStandardMaterial({ color: '#111', emissive: '#f4f4f4', emissiveIntensity: .7 }), .06, .78, .32, root, false);
+    ph.rotation.x = -.85; this.actProps.push(ph); this.toonScreen = ph.material;
   }
   if (a === 'book') {
     const bk = new THREE.Group(); bk.position.set(0, .8, .32); bk.rotation.x = -.7; root.add(bk);
@@ -3388,6 +3421,14 @@ Person.prototype.animateActivity = function () {
   if (this.act === 'game') {
     const j = Math.sin(t * 28) * .05; arms[0].rotation.x = -1.25 + j; arms[1].rotation.x = -1.25 - j; head.rotation.x = .3;
     if (this.gameScreen) this.gameScreen.emissiveIntensity = .6 + .4 * Math.abs(Math.sin(t * 6));
+  }
+  if (this.act === 'movie') {
+    arms[0].rotation.x = arms[1].rotation.x = -1.15; head.rotation.x = .32;
+    if (this.movieScreen) this.movieScreen.emissive.setHSL((t * .07) % 1, .7, .45 + .1 * Math.sin(t * 3));
+  }
+  if (this.act === 'toon') {
+    arms[0].rotation.x = -.5; arms[1].rotation.x = -1.2 + (Math.sin(t * 2.2) > .7 ? Math.sin(t * 30) * .06 : 0); head.rotation.x = .35;
+    if (this.toonScreen) this.toonScreen.emissiveIntensity = .55 + .2 * Math.abs(Math.sin(t * 1.1));
   }
   if (this.act === 'book') {
     arms[0].rotation.x = arms[1].rotation.x = -1.1; head.rotation.x = .38;
