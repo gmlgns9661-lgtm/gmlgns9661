@@ -1476,8 +1476,8 @@ function drawHUD2() {
     const st = STATIONS[G.next]; const n = seatedNpcs().filter(o => o.stop === G.next).length;
     pi.innerHTML = `📱 <b>${st}${TRANSFER.has(st) ? ' · 환승역!' : ''}</b><br>이번 역 좌석 하차 예상 <b>${n}명</b>`;
     pi.style.display = 'block';
-    const sp = toScreen(P.x, .8, P.z); const R = Math.min(innerWidth, innerHeight) * .26;
-    vi.style.background = `radial-gradient(circle at ${sp.x}px ${sp.y}px, rgba(5,8,15,0) ${R}px, rgba(5,8,15,.9) ${R * 1.9}px)`;
+    const sp = toScreen(P.x, .8, P.z); const R = Math.min(innerWidth, innerHeight) * .2;
+    vi.style.background = `radial-gradient(circle at ${sp.x}px ${sp.y}px, rgba(3,4,8,0) ${R * .7}px, rgba(3,4,8,.93) ${R * 1.25}px, rgba(0,0,0,.985) ${R * 1.8}px)`;
     vi.style.display = 'block';
   } else { pi.style.display = 'none'; vi.style.display = 'none'; }
   // 행동 버튼
@@ -2035,8 +2035,8 @@ function drawHUD1() {
   if (P.phone && G.phase === 'gate') {
     pi.innerHTML = `📱 <b>모바일 교통카드 준비됨</b><br>개찰구에서 <b>바로 찍기</b> 가능`;
     pi.style.display = 'block';
-    const sp = toScreen(P.x, .8, P.z); const R = Math.min(innerWidth, innerHeight) * .26;
-    vi.style.background = `radial-gradient(circle at ${sp.x}px ${sp.y}px, rgba(5,8,15,0) ${R}px, rgba(5,8,15,.9) ${R * 1.9}px)`;
+    const sp = toScreen(P.x, .8, P.z); const R = Math.min(innerWidth, innerHeight) * .2;
+    vi.style.background = `radial-gradient(circle at ${sp.x}px ${sp.y}px, rgba(3,4,8,0) ${R * .7}px, rgba(3,4,8,.93) ${R * 1.25}px, rgba(0,0,0,.985) ${R * 1.8}px)`;
     vi.style.display = 'block';
   } else { pi.style.display = 'none'; vi.style.display = 'none'; }
   let label = '행동<br><small>Space</small>', cls = '';
@@ -2668,8 +2668,8 @@ function drawHUDPlatform() {
     const lens = PL_DOORS.map((_, d) => qlines.filter(L => L.d === d).reduce((a, L) => a + L.q.filter(x => x !== P).length, 0));
     pi.innerHTML = `📱 <b>혼잡도 앱</b><br>${lens.map((n, d) => `3-${d + 1}: 대기 ${n} / 자리 ${G.caps[d]} ${n >= G.caps[d] ? '❌' : '✅'}`).join('<br>')}`;
     pi.style.display = 'block';
-    const sp = toScreen(P.x, .8, P.z); const R = Math.min(innerWidth, innerHeight) * .26;
-    vi.style.background = `radial-gradient(circle at ${sp.x}px ${sp.y}px, rgba(5,8,15,0) ${R}px, rgba(5,8,15,.9) ${R * 1.9}px)`;
+    const sp = toScreen(P.x, .8, P.z); const R = Math.min(innerWidth, innerHeight) * .2;
+    vi.style.background = `radial-gradient(circle at ${sp.x}px ${sp.y}px, rgba(3,4,8,0) ${R * .7}px, rgba(3,4,8,.93) ${R * 1.25}px, rgba(0,0,0,.985) ${R * 1.8}px)`;
     vi.style.display = 'block';
   } else { pi.style.display = 'none'; vi.style.display = 'none'; }
   let label = '행동<br><small>Space</small>', cls = '';
