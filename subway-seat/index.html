@@ -179,6 +179,7 @@
   /* 오버레이 */
   .overlay { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; background: rgba(12,14,22,.95); text-align: center; padding: 22px 16px 30px; overflow-y: auto; z-index: 10; }
   .overlay.show { display: flex; }
+  #iris { position: fixed; left: 50%; top: 50%; width: 0; height: 0; transform: translate(-50%, -50%); border-radius: 50%; box-shadow: 0 0 0 300vmax #000; display: none; z-index: 30; pointer-events: none; }
   #choice { position: absolute; left: 50%; transform: translateX(-50%); top: 180px; width: min(360px, calc(100vw - 32px)); background: rgba(15,20,32,.94); border: 2px solid #ffd166; border-radius: 16px; padding: 10px 12px; text-align: center; display: none; pointer-events: auto; z-index: 6; box-shadow: 0 8px 28px rgba(0,0,0,.5); }
   #choice.show { display: block; }
   #chTitle { display: block; font-size: 15px; color: #fff; }
@@ -255,6 +256,7 @@
   </div>
 </div>
 
+<div id="iris"></div>
 <div class="overlay show" id="startScreen">
   <h1>🚇 출근길 자리전쟁 3D</h1>
   <p class="sub">출근길 지하철에서 자리를 쟁취하라!</p>
@@ -1482,7 +1484,7 @@ function earlyAlight(d) {
   const k = G.next, st = STATIONS[k], left = LAST - k;
   sevCancel(); G.exitAsk = null; G.endStop = k; G.phase = 'end'; G.endLabel = `${yeok(st)}에서 내림`;
   $('cutin').classList.remove('show'); $('warn').classList.remove('show'); laneMesh.material.opacity = 0;
-  P.stuck = null; P.goTo(d.x * 1.25, d.z, 'leave', () => { });
+  P.stuck = null; P.speed = 1.6; P.goTo(Math.sign(d.x) * 2.7, d.z, 'leave', () => { });
   SFX.pop();
   $('big').textContent = '🚪 하차…?'; $('big').classList.add('show');
   setTimeout(() => { if (G.phase === 'end') { float('…어? 여기 ' + st + '역인데?!', { x: P.x, y: 2.3, z: P.z }, '#ff8a8a', 16, 1.8); SFX.fail(); } }, 900);
@@ -1490,11 +1492,27 @@ function earlyAlight(d) {
     ['😱', `${yeok(st)}에서 너무 빨리 내림 (${STATIONS[LAST]}까지 ${left}역 남음)`, -500],
     ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
     ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300]];
-  setTimeout(() => showEnd(false, rows, {
+  setTimeout(() => iris(() => showEnd(false, rows, {
     kind: 'early', emoji: '😱🚪', title: '너무 빨리 내렸다!',
     desc: `여긴 ${yeok(st)}… ${STATIONS[LAST]}까지 아직 ${left}역 남았는데! 문은 이미 닫혔다. 다음 열차 기다리다 지각 확정`,
     rank: '성급한 출근러',
-  }), 2200);
+  })), 1500);
+}
+// ── 장면 전환: 화면 가운데 점을 향해 검은 원이 좁혀졌다가(아이리스 아웃) 다시 펼쳐짐(아이리스 인)
+function iris(mid) {
+  const el = $('iris'), R = Math.ceil(Math.hypot(innerWidth, innerHeight)) + 40;
+  el.style.transition = 'none'; el.style.width = el.style.height = 2 * R + 'px'; el.style.display = 'block';
+  void el.offsetWidth;
+  el.style.transition = 'width .7s cubic-bezier(.55,0,.8,.4), height .7s cubic-bezier(.55,0,.8,.4)';
+  el.style.width = el.style.height = '0px';
+  setTimeout(() => {
+    try { if (mid) mid(); } catch (e) { console.error(e); }
+    setTimeout(() => {
+      el.style.transition = 'width .75s cubic-bezier(.2,.6,.45,1), height .75s cubic-bezier(.2,.6,.45,1)';
+      el.style.width = el.style.height = 2 * R + 'px';
+      setTimeout(() => { el.style.display = 'none'; }, 800);
+    }, 280);
+  }, 720);
 }
 function doAlight(auto = false) {
   if (G.phase === 'end') return;
@@ -1503,13 +1521,13 @@ function doAlight(auto = false) {
   const sat = G.satRemain != null;
   $('cutin').classList.remove('show'); $('warn').classList.remove('show'); laneMesh.material.opacity = 0;
   if (P.seated) { P.seated = false; if (P.seat) { P.seat.occ = null; P.seat = null; } P.setSit(false); }
-  const d = nearestDoor(P); P.goTo(d.x * .9, d.z, 'leave', () => { });
+  const d = nearestDoor(P); P.speed = 1.6; P.goTo(Math.sign(d.x) * 2.7, d.z, 'leave', () => { });   // 문 밖으로 걸어 나감
   SFX.pop(); tone(880, .05, .15, 'sine', .07);
   const last = !JOURNEY || JOURNEY.idx === JOURNEY.legs.length - 1;
   $('big').textContent = auto ? '😮‍💨 되돌아와서 내림' : (last ? '🚪 하차!' : '🔁 환승!'); $('big').classList.add('show');
   const overRow = G.overshot ? [['😱', '내릴 역 지나침 (되돌아감)', -300]] : [];
-  if (JOURNEY) { if (G.overshot) JOURNEY.rows.push(overRow[0]); setTimeout(() => legDone(sat, sat ? G.satRemain : 0), 1400); return; }
-  setTimeout(() => showEnd(sat, sat ? [
+  if (JOURNEY) { if (G.overshot) JOURNEY.rows.push(overRow[0]); setTimeout(() => iris(() => legDone(sat, sat ? G.satRemain : 0)), 700); return; }
+  setTimeout(() => iris(() => showEnd(sat, sat ? [
     ...stage1Rows(),
     ['🚉', `${G.satRemain}개 역 앉아서 감`, G.satRemain * 150],
     ...overRow,
@@ -1521,7 +1539,7 @@ function doAlight(auto = false) {
     ...overRow,
     ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
     ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
-  ], sat ? {} : { title: `${STATIONS[LAST]} 도착… 서서 왔다`, desc: '오늘도 서서 출근했다. 내일은 꼭 앉자.' }), 1500);
+  ], sat ? {} : { title: `${STATIONS[LAST]} 도착… 서서 왔다`, desc: '오늘도 서서 출근했다. 내일은 꼭 앉자.' })), 700);
 }
 // 문 닫힐 때까지 안 내리면: 다음 역까지 갔다가 되돌아옴
 function missedStop() {
@@ -1625,7 +1643,7 @@ function update(dt) {
     if (G.phase !== 'end') updateSeatEvents(dt);
     updateBags(dt);
     updateDoorSigns();
-  } else { updateDoorSigns(); if (P.seated) P.update(dt); updateBags(dt); }
+  } else { updateDoorSigns(); P.update(dt); updateBags(dt); }   // 끝난 뒤에도 내 캐릭터는 문 밖으로 걸어 나감
 
   for (const p of people) if (p !== P) p.update(dt);
   relaxCrowd(dt);
