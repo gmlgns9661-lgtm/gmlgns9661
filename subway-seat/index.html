@@ -413,6 +413,7 @@ let STATIONS = LINES[1].stations;
 let TRANSFER = new Set(LINES[1].transfer);
 let LAST = STATIONS.length - 1;
 const BEYOND = 99;
+const yeok = s => /역$/.test(String(s)) ? s : s + '역';   // '서울역' + '역' 방지
 const SEATS = 7;
 const seatZ = i => -6.0 + i * 0.95;
 const SEAT_X = [-1.72, 1.72];
@@ -918,7 +919,7 @@ function startArrival() {
   SFX.chime();
   const v = SCHEDULE[k];
   G.doorSide = doorSideOf(STATIONS[k]); G.saidClose = false;
-  announce(v ? `${STATIONS[k]}역 · 🚨 빌런이 탑승합니다! 자리를 사수하세요.` : `${STATIONS[k]}역 · ${G.doorSide ? '오른쪽' : '왼쪽'} 문이 열립니다`, 3.5);
+  announce(v ? `${yeok(STATIONS[k])} · 🚨 빌런이 탑승합니다! 자리를 사수하세요.` : `${yeok(STATIONS[k])} · ${G.doorSide ? '오른쪽' : '왼쪽'} 문이 열립니다`, 3.5);
   for (const o of seatedNpcs()) { o.setSignal(null); o.sigShown = false; }
   for (const p of [...people]) {
     if (p.kind === 'npc' && p.stop === k && p.state !== 'leave') leave(p);
@@ -1237,6 +1238,7 @@ function action() {
   audio();
   if (G.stage === 1) return action1();
   if (G.alightOpen) return doAlight();
+  if (nearOpenDoor() && earlyAlightTry()) return;
   if (G.sev && sevAction()) return;
   if (P.seated && nearAura()) return actAura(nearAura());
   if (P.seated) { float(G.ffwd ? '💺 편하게 가는 중…' : '💺 도착역에서 내리기!', { x: P.x, y: 2.2, z: P.z }, '#cfd6ff', 12, .8); return; }
@@ -1425,9 +1427,45 @@ function arriveDestination() {
   G.phase = 'arrive'; G.t = 0; G.boarded = true; G.refilled = true; G.saidClose = false;
   G.doorSide = doorSideOf(st); G.alightOpen = true;
   if (!P.earMode) { SFX.chime(); tone(1046, .6, .3, 'sine', .07); }
-  announce(`🚪 ${st}역 도착! 지금 내리기 버튼을 누르세요 (${G.doorSide ? '오른쪽' : '왼쪽'} 문)`, 5);
-  speak(`${st}역입니다. 내리실 분은 서둘러 내리시기 바랍니다.`);
+  announce(`🚪 ${yeok(st)} 도착! 지금 내리기 버튼을 누르세요 (${G.doorSide ? '오른쪽' : '왼쪽'} 문)`, 5);
+  speak(`${yeok(st)}입니다. 내리실 분은 서둘러 내리시기 바랍니다.`);
   for (const p of [...people]) if (p.kind === 'npc' && p.stop === k && p.state !== 'leave') leave(p);
+}
+// ── 문 열렸을 때 아무 역에서나 문 앞에서 내리기 (목적지 전이면 '너무 빨리 내렸다!')
+let doorSigns = null;
+function updateDoorSigns() {
+  if (!doorSigns) doorSigns = DOORS.map(d => { const sp = makeSprite(labelTex('🚪 내리는 문', '#a8ffb0'), 1.1, .25); sp.position.set(d.x * .8, 2.25, d.z); sp.visible = false; scene.add(sp); return sp; });
+  const open = G && G.stage === 2 && G.phase === 'arrive' && G.t < G.arriveDur - .3;
+  const side = open ? sideDoors() : [];
+  DOORS.forEach((d, i) => { doorSigns[i].visible = side.includes(d); });
+}
+function nearOpenDoor() {
+  if (!G || G.stage !== 2 || G.phase !== 'arrive' || P.seated || G.t < .5 || G.t > G.arriveDur - .4) return null;
+  return sideDoors().find(d => dist(P, d) < 1.5) || null;
+}
+function earlyAlightTry() {
+  const d = nearOpenDoor(); if (!d) return false;
+  if (G.alightOpen) { doAlight(); return true; }
+  if (!G.exitAsk || G.clock - G.exitAsk > 1.6) { G.exitAsk = G.clock; float(`🚪 ${yeok(STATIONS[G.next])}에서 내릴까요? 한 번 더 누르면 내려요`, { x: P.x, y: 2.3, z: P.z }, '#ffe066', 13, 1.6); return true; }
+  earlyAlight(d); return true;
+}
+function earlyAlight(d) {
+  const k = G.next, st = STATIONS[k], left = LAST - k;
+  sevCancel(); G.exitAsk = null; G.endStop = k; G.phase = 'end'; G.endLabel = `${yeok(st)}에서 내림`;
+  $('cutin').classList.remove('show'); $('warn').classList.remove('show'); laneMesh.material.opacity = 0;
+  P.stuck = null; P.goTo(d.x * 1.25, d.z, 'leave', () => { });
+  SFX.pop();
+  $('big').textContent = '🚪 하차…?'; $('big').classList.add('show');
+  setTimeout(() => { if (G.phase === 'end') { float('…어? 여기 ' + st + '역인데?!', { x: P.x, y: 2.3, z: P.z }, '#ff8a8a', 16, 1.8); SFX.fail(); } }, 900);
+  const rows = [...(JOURNEY ? JOURNEY.rows : []), ...stage1Rows(),
+    ['😱', `${yeok(st)}에서 너무 빨리 내림 (${STATIONS[LAST]}까지 ${left}역 남음)`, -500],
+    ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
+    ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300]];
+  setTimeout(() => showEnd(false, rows, {
+    kind: 'early', emoji: '😱🚪', title: '너무 빨리 내렸다!',
+    desc: `여긴 ${yeok(st)}… ${STATIONS[LAST]}까지 아직 ${left}역 남았는데! 문은 이미 닫혔다. 다음 열차 기다리다 지각 확정`,
+    rank: '성급한 출근러',
+  }), 2200);
 }
 function doAlight(auto = false) {
   if (G.phase === 'end') return;
@@ -1557,7 +1595,8 @@ function update(dt) {
     if (G.phase !== 'end') updateClaims();
     if (G.phase !== 'end') updateSeatEvents(dt);
     updateBags(dt);
-  } else { if (P.seated) P.update(dt); updateBags(dt); }
+    updateDoorSigns();
+  } else { updateDoorSigns(); if (P.seated) P.update(dt); updateBags(dt); }
 
   for (const p of people) if (p !== P) p.update(dt);
   relaxCrowd(dt);
@@ -1649,6 +1688,7 @@ function drawHUD2() {
   let label = '—', cls = '';
   if (G.phase === 'end') { }
   else if (G.alightOpen) { label = '🚪 내리기!<br><small>' + STATIONS[LAST] + '</small>'; cls = 'ready'; }
+  else if (nearOpenDoor()) { const ask = G.exitAsk && G.clock - G.exitAsk <= 1.6; label = ask ? '🚪 진짜<br>내리기!' : `🚪 내리기<br><small>${STATIONS[G.next]}</small>`; cls = ask ? 'mash' : 'cough'; }
   else if (G.sev && G.sev.mode === 'sleep') { label = G.sev.flinch > 0 ? '✋ 멈춰!<br><small>움찔 금지</small>' : '😴 쿨쿨<br><small>연기</small>'; cls = G.sev.flinch > 0 ? 'mash' : 'ready'; }
   else if (G.sev && G.sev.mode === 'choice') { label = '⬆️ 선택<br><small>1 / 2</small>'; cls = 'cough'; }
   else if (P.seated && nearAura()) { const a = nearAura(); label = `🔨 뿅망치<br><small>${a.count}/${a.D.need}</small>`; cls = 'mash'; }
@@ -1856,6 +1896,7 @@ function stageTitle(t, sub) {
 }
 
 function newStage1() {
+  if (doorSigns) doorSigns.forEach(sp => { sp.visible = false; });
   clearWorld(); stopVoice();
   for (const L of qlines) L.q = [];
   stationGroup.visible = true; platformGroup.visible = false; carGroup.visible = false; laneMesh.visible = false; lane2.material.opacity = 0;
@@ -1873,7 +1914,7 @@ function newStage1() {
   spawnItems();
   for (let i = 0; i < Math.round(LINE.crowd * .65); i++) spawnFlow(rand(.2, 5.5));
   $('endScreen').classList.remove('show'); $('big').classList.remove('show');
-  announce(`${STATIONS[0]}역 도착! 카드 찍고 승강장까지 가세요. ☕🎧 아이템도 챙기세요!`, 3.5);
+  announce(`${yeok(STATIONS[0])} 도착! 카드 찍고 승강장까지 가세요. ☕🎧 아이템도 챙기세요!`, 3.5);
   stageTitle('STAGE 1', '개찰구 통과 · 카드 찍고 열차 타기');
   drawBoard(LINE.s1Time);
 }
@@ -2208,7 +2249,7 @@ function drawHUD1() {
   $('station').style.color = sec <= 10 ? '#ff8a8a' : '#fff';
   $('timebar').style.width = clamp(G.timeLeft / LINE.s1Time, 0, 1) * 100 + '%';
   $('timebar').style.background = sec <= 10 ? '#ff5a5a' : '#33d17a';
-  $('remain').textContent = `STAGE 1 · ${STATIONS[0]}역 개찰구 → 승강장 계단` + legLabel();
+  $('remain').textContent = `STAGE 1 · ${yeok(STATIONS[0])} 개찰구 → 승강장 계단` + legLabel();
   drawMap();
   const pi = $('phoneInfo'), vi = $('vision');
   if (P.phone && G.phase === 'gate') {
@@ -2255,7 +2296,7 @@ function setLine(L) {
   const dest = STATIONS[LAST];
   signMesh.material.map = signTex([{ t: `${L.badge} ${STATIONS[0]}`, s: 44, c: '#fff', y: 40, x: 30, a: 'left' }, { t: `타는 곳 · ${dest} 방면 ↓`, s: 40, c: '#fff', y: 40, x: 740, a: 'right' }], 768, 100, L.color, 'SIGN1' + L.id);
   downMesh.material.map = signTex([{ t: `⬇ 승강장 · ${L.name} ${dest} 방면`, s: 32, c: '#fff', y: 32 }], 512, 64, '#2b3a55', 'SIGN2' + L.id);
-  entMesh.material.map = signTex([{ t: `출입구 ↑ ${STATIONS[0]}역`, s: 30, c: '#1c2130', y: 32 }], 512, 64, '#ffd23f', 'SIGN3' + L.id);
+  entMesh.material.map = signTex([{ t: `출입구 ↑ ${yeok(STATIONS[0])}`, s: 30, c: '#1c2130', y: 32 }], 512, 64, '#ffd23f', 'SIGN3' + L.id);
   $('lineName').textContent = `${L.name} · 출근길`; $('lineName').style.color = L.color;
 }
 function showLineScreen() {
@@ -2546,14 +2587,14 @@ function transferText(st) {
 const doorSideOf = st => { let h = 0; for (const c of st) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 2; }; // 0=왼쪽 1=오른쪽
 function sayNext(st) {
   const x = transferText(st);
-  const txt = `다음 역은 ${st}, ${st}역입니다.` + (x ? ` ${x} 다음 역에서 내리시기 바랍니다.` : '');
+  const txt = `다음 역은 ${st}, ${yeok(st)}입니다.` + (x ? ` ${x} 다음 역에서 내리시기 바랍니다.` : '');
   speak(txt); return txt;
 }
 function sayThis(st) {
   const side = doorSideOf(st) ? '오른쪽' : '왼쪽';
   const x = transferText(st);
   const end = !LINE.custom && st === STATIONS[LAST] ? ' 이 역은 이 열차의 종착역입니다.' : '';
-  const txt = `이번 역은 ${st}, ${st}역입니다. 내리실 문은 ${side}입니다.` + (x ? ` ${x} 이번 역에서 내리시기 바랍니다.` : '') + end;
+  const txt = `이번 역은 ${st}, ${yeok(st)}입니다. 내리실 문은 ${side}입니다.` + (x ? ` ${x} 이번 역에서 내리시기 바랍니다.` : '') + end;
   speak(txt); return txt;
 }
 
@@ -3332,7 +3373,7 @@ function checkCutting(lines, dt) {
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 const kstDay = (offset = 0) => new Date(Date.now() + 9 * 3600e3 + offset * 86400e3).toISOString().slice(0, 10);
-const RESULT = { collapse: '😵 쓰러짐', seat: '🪑 착석', stand: '🧍 서서 도착', late: '⏰ 지각', fight: '💥 싸움', pink: '🤰 배려석' };
+const RESULT = { early: '😱 일찍 내림', collapse: '😵 쓰러짐', seat: '🪑 착석', stand: '🧍 서서 도착', late: '⏰ 지각', fight: '💥 싸움', pink: '🤰 배려석' };
 const RK = { db: null, uid: null, runs: new Map(), mine: null, ready: false, state: 'loading', daily: true };
 function lsGet(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
@@ -3386,7 +3427,7 @@ function renderLineTops() {
     const L = LINES.find(x => x.id === el.dataset.line);
     const dest = L.stations[L.stations.length - 1];
     const b = boardFor(destRank(dest, L.stations[0]));
-    el.textContent = b.length ? `👑 오늘 ${dest}역 도착 1위 ${b[0].nick} ${b[0].score.toLocaleString()}점 · ${b.length}명` : (RK.state === 'live' ? `오늘 ${dest}역 첫 도착자가 되어 보세요` : '');
+    el.textContent = b.length ? `👑 오늘 ${yeok(dest)} 도착 1위 ${b[0].nick} ${b[0].score.toLocaleString()}점 · ${b.length}명` : (RK.state === 'live' ? `오늘 ${yeok(dest)} 첫 도착자가 되어 보세요` : '');
   }
 }
 
@@ -3549,7 +3590,7 @@ function renderRankScreen() {
   }
   const body = $('rankBody'); body.innerHTML = '';
   const { el, all, myIdx, key } = rankCols({ id: 'D:' + rankTab }, 30);
-  body.append(line(`${today} · 🏁 ${rankTab}역 도착 랭킹 · ${all.length}명 · 출발역은 자유 (멀리서 올수록 고득점 가능)`));
+  body.append(line(`${today} · 🏁 ${yeok(rankTab)} 도착 랭킹 · ${all.length}명 · 출발역은 자유 (멀리서 올수록 고득점 가능)`));
   if (!all.length) body.append(line(RK.state === 'live' ? '아직 오늘 기록이 없어요. 첫 도착자가 되어 보세요!' : '랭킹을 불러오는 중이거나 이 화면에선 쓸 수 없어요.'));
   else { if (myIdx >= 0 && myIdx < 10) body.append(cmtForm(key, renderRankScreen)); body.append(el); }
   const st = myStats();
@@ -3683,7 +3724,7 @@ function makeLegLine(L, path) {
 }
 // 랭킹은 도착역 기준: 어디서 출발했든 같은 역에 도착한 사람끼리 경쟁 (멀리서 올수록 고득점 가능)
 function destRank(dest, from, color = '#7a5cff') {
-  return { id: `D:${dest}`, dest, from, custom: true, name: `${dest}역 도착`, badge: '🏁', color, stars: '', routeLabel: `${from} → ${dest}` };
+  return { id: `D:${dest}`, dest, from, custom: true, name: `${yeok(dest)} 도착`, badge: '🏁', color, stars: '', routeLabel: `${from} → ${dest}` };
 }
 function journeyRankLine(plan) { return destRank(plan.to, plan.from); }
 const rankLine = () => JOURNEY ? JOURNEY.rank : (LINE ? destRank(LINE.stations[LINE.stations.length - 1], LINE.stations[0], LINE.color) : null);
@@ -3729,7 +3770,7 @@ function updateRouteInfo() {
   if (stops < MIN_STOPS) { info.textContent += ` — 너무 짧아요 (${MIN_STOPS}역 이상).`; return; }
   PLAN = plan; go.disabled = false;
   const n = boardFor(journeyRankLine(plan)).length;   // 도착역 기준
-  if (RK.state === 'live') info.textContent += ` · 오늘 ${plan.to}역 도착 랭킹 ${n}명`;
+  if (RK.state === 'live') info.textContent += ` · 오늘 ${yeok(plan.to)} 도착 랭킹 ${n}명`;
 }
 
 function startJourney(plan) {
@@ -3755,7 +3796,7 @@ function legDone(sat, remain) {
     J.idx++;
     const next = J.legs[J.idx], st = next.line.stations[0];
     const f = $('fade');
-    f.innerHTML = `<b>🔁 환승</b><span>${st}역 · ${leg.line.name} → ${next.line.name}</span><span style="font-size:12px;color:#9aa3b8">갈아타는 승강장에서 다시 줄을 서세요</span>`;
+    f.innerHTML = `<b>🔁 환승</b><span>${yeok(st)} · ${leg.line.name} → ${next.line.name}</span><span style="font-size:12px;color:#9aa3b8">갈아타는 승강장에서 다시 줄을 서세요</span>`;
     f.classList.add('show');
     const t = `${next.line.name}${josaRo(next.line.name)} 갈아타실 고객께서는 ${next.line.name} 타는 곳으로 가시기 바랍니다.`;
     speak(t, { interrupt: true });
@@ -3768,7 +3809,7 @@ function legDone(sat, remain) {
       P.disc = keep.disc * .8;                // 걷는 동안 조금 진정
       G.t = 6;                                  // 환승 이동 시간만큼 줄이 조금 길어져 있음
       stageTitle(`환승 ${J.idx}/${J.legs.length - 1}`, `${next.line.name} 타는 곳 · ${next.line.routeLabel}`);
-      announce(`${st}역 ${next.line.name} 타는 곳. 노란 발자국 줄 끝에 서세요!`, 3.5);
+      announce(`${yeok(st)} ${next.line.name} 타는 곳. 노란 발자국 줄 끝에 서세요!`, 3.5);
       voiceOn = keepVoice;
       enterPlatform();
       G.started = true;
@@ -3979,7 +4020,7 @@ function showRouteGuide(plan) {
   const hhmm = d => `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
   $('rgSum').textContent = `총 ${stops}개 역 · 환승 ${plan.legs.length - 1}회 · 약 ${Math.round(plan.minutes)}분 · 지금 출발하면 ${hhmm(arr)} 도착`;
   const step = (cls, html) => { const d = document.createElement('div'); d.className = 'rg-step ' + cls; d.innerHTML = html; map.append(d); return d; };
-  step('pt', `🚩 <b></b> 출발 · 개찰구에서 카드 찍고 승강장으로`).querySelector('b').textContent = plan.from + '역';
+  step('pt', `🚩 <b></b> 출발 · 개찰구에서 카드 찍고 승강장으로`).querySelector('b').textContent = yeok(plan.from);
   plan.legs.forEach((l, i) => {
     const mins = Math.round((l.path.length - 1) * hopMin(l.metro));
     const el = step('leg', '');
@@ -3992,15 +4033,15 @@ function showRouteGuide(plan) {
     if (i < plan.legs.length - 1) {
       const nx = plan.legs[i + 1].metro;
       const x = step('xf', '🔁 ');
-      const b = document.createElement('b'); b.textContent = `${l.path[l.path.length - 1]}역`; x.append(b);
+      const b = document.createElement('b'); b.textContent = `${yeok(l.path[l.path.length - 1])}`; x.append(b);
       x.append(document.createTextNode(`에서 ${nx.name}${josaRo(nx.name)} 갈아타기 (약 ${XFER_MIN}분) · 승강장에서 다시 줄서기`));
     }
   });
-  step('pt', '🏁 <b></b> 도착').querySelector('b').textContent = plan.to + '역';
+  step('pt', '🏁 <b></b> 도착').querySelector('b').textContent = yeok(plan.to);
   $('routeGuide').classList.add('show');
   // 음성 안내
-  const parts = plan.legs.map((l, i) => i === 0 ? `${plan.from}역에서 ${l.metro.name}${josaEul(l.metro.name)} 타고` : `${l.path[0]}역에서 ${l.metro.name}${josaRo(l.metro.name)} 갈아탄 다음`);
-  speak(`${parts.join(', ')}, ${plan.to}역에서 내리세요. 예상 소요 시간은 약 ${Math.round(plan.minutes)}분입니다.`, { interrupt: true });
+  const parts = plan.legs.map((l, i) => i === 0 ? `${yeok(plan.from)}에서 ${l.metro.name}${josaEul(l.metro.name)} 타고` : `${yeok(l.path[0])}에서 ${l.metro.name}${josaRo(l.metro.name)} 갈아탄 다음`);
+  speak(`${parts.join(', ')}, ${yeok(plan.to)}에서 내리세요. 예상 소요 시간은 약 ${Math.round(plan.minutes)}분입니다.`, { interrupt: true });
 }
 $('rgGo').addEventListener('click', () => { $('routeGuide').classList.remove('show'); stopVoice(); if (PLAN) startJourney(PLAN); });
 $('rgBack').addEventListener('click', () => { $('routeGuide').classList.remove('show'); stopVoice(); });
