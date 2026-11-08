@@ -51,6 +51,14 @@
   .daily input#nickInput, .nickrow input { flex: 1; min-width: 0; max-width: 170px; padding: 7px 10px; border-radius: 8px; border: 1px solid #3a4256; background: #141822; color: #fff; font: inherit; font-size: 14px; }
   .tog { font-size: 12.5px; color: #d8dbe6; display: flex; align-items: center; gap: 4px; }
   .rbtn { border: 0; border-radius: 999px; padding: 6px 12px; background: #ffd166; color: #3a2a00; font: 900 13px inherit; font-family: inherit; cursor: pointer; }
+  .rcard { width: 100%; max-width: 400px; margin: 6px auto; padding: 12px 14px; text-align: left; border-left: 7px solid #7a5cff; border-radius: 12px; background: #232a40; }
+  .rform { display: flex; gap: 6px; align-items: center; margin-top: 7px; }
+  .rform select { flex: 1; min-width: 0; padding: 8px; border-radius: 8px; border: 1px solid #3a4256; background: #141822; color: #fff; font: inherit; font-size: 14px; }
+  .rswap { border: 0; border-radius: 8px; background: #3a4256; color: #fff; font-size: 16px; padding: 6px 10px; cursor: pointer; }
+  .rcard .rbtn { margin-top: 8px; width: 100%; padding: 10px; font-size: 15px; }
+  .rcard .rbtn:disabled { opacity: .45; cursor: not-allowed; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  select { -webkit-user-select: auto; user-select: auto; touch-action: auto; }
   .ltop { font-size: 11.5px; color: #ffd166; margin-top: 6px; min-height: 1em; }
   #endBoard { width: 100%; max-width: 400px; margin-top: 6px; }
   .board { margin-top: 4px; }
@@ -241,6 +249,21 @@
     </div>
     <p class="sub" id="rankNote"></p>
   </div>
+  <div class="rcard" id="routeCard">
+    <div class="lhead"><span class="lbadge" style="background:#7a5cff">🗺️</span><b>내 출근길 만들기</b><span class="lstars">NEW</span></div>
+    <p class="ldesc">매일 타는 실제 구간을 골라 그대로 플레이. 같은 구간 출근자끼리 따로 랭킹!</p>
+    <div class="rform">
+      <label for="rLine" class="sr">노선</label><select id="rLine"></select>
+    </div>
+    <div class="rform">
+      <label for="rFrom" class="sr">출발역</label><select id="rFrom"></select>
+      <button class="rswap" id="rSwap" aria-label="출발역과 도착역 바꾸기">⇄</button>
+      <label for="rTo" class="sr">도착역</label><select id="rTo"></select>
+    </div>
+    <p class="ldesc" id="rInfo"></p>
+    <button class="rbtn" id="rGo">이 구간으로 출근 ▶</button>
+  </div>
+  <p class="sub" style="margin:8px 0 2px">또는 대표 혼잡 구간으로 도전</p>
   <div id="lineCards" style="width:100%"></div>
   <p class="sub">PC: 숫자키 1~4로 바로 선택 · 랭킹 도전을 끄면 랜덤 배치 연습 모드</p>
 </div>
@@ -965,7 +988,7 @@ function updateClaims() {
 // ═════════════════════════ 입력 ═════════════════════════
 const keys = new Set();
 addEventListener('keydown', e => {
-  if (e.target && e.target.tagName === 'INPUT') return;   // 닉네임 입력 중
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;   // 닉네임·역 선택 중
   const k = e.key.toLowerCase();
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   if (!keys.has(k)) {
@@ -1230,7 +1253,7 @@ function showEnd(win, parts, opt = {}) {
   $('big').classList.remove('show');
   $('endEmoji').textContent = opt.emoji || (win ? '🪑✨' : '🧍😩');
   $('endTitle').textContent = opt.title || (win ? '착석!' : `${STATIONS[LAST]} 도착…`);
-  $('endDesc').textContent = `[${LINE.name} ${LINE.stars}] ` + (opt.desc || (win ? `${STATIONS[G.endStop]} 근처에서 자리를 쟁취했다!` : '오늘도 서서 출근했다. 내일은 꼭 앉자.'));
+  $('endDesc').textContent = `[${LINE.name}${LINE.custom ? ' ' + LINE.routeLabel : ''} ${LINE.stars}] ` + (opt.desc || (win ? `${STATIONS[G.endStop]} 근처에서 자리를 쟁취했다!` : '오늘도 서서 출근했다. 내일은 꼭 앉자.'));
   $('endScore').textContent = total.toLocaleString() + '점';
   let rank = '평범한 직장인';
   if (!win) rank = '만원 지하철의 생존자';
@@ -2646,6 +2669,7 @@ async function initRanking() {
       RK.runs.clear();
       for (const d of snap.docs) if (d.exists) RK.runs.set(d.id, d.data());
       RK.mine = RK.uid ? RK.runs.get(RK.uid) || null : null;
+      if (typeof updateRouteInfo === 'function' && $('rLine').options.length) updateRouteInfo();
       if (RK.mine && !$('nickInput').value) $('nickInput').value = cleanNick(RK.mine.nick);
       if (!snap.metadata.fromCache) { RK.ready = true; RK.state = 'live'; clearTimeout(timer); }
       renderLineTops(); if ($('rankScreen').classList.contains('show')) renderRankScreen();
@@ -2732,7 +2756,7 @@ function renderEndBoard(head) {
   const out = $('endBoard'); out.innerHTML = '';
   const { el, all } = boardList(LINE, 5, RK.uid);
   const myIdx = all.findIndex(r => r.id === RK.uid);
-  const h = document.createElement('h2'); h.textContent = `📅 오늘의 출근길 · ${LINE.name}`; out.append(h);
+  const h = document.createElement('h2'); h.textContent = `📅 오늘의 출근길 · ${LINE.name}${LINE.custom ? ' ' + LINE.routeLabel : ''}`; out.append(h);
   if (head) out.append(line(head));
   if (myIdx >= 0) out.append(line(`내 순위 ${myIdx + 1}위 / ${all.length}명`));
   out.append(el);
@@ -2743,12 +2767,14 @@ let rankTab = '2';
 function openRank(id) { rankTab = id || rankTab; $('rankScreen').classList.add('show'); renderRankScreen(); }
 function renderRankScreen() {
   const tabs = $('rankTabs'); tabs.innerHTML = '';
-  for (const L of LINES) {
-    const b = document.createElement('button'); b.className = 'rtab' + (L.id === rankTab ? ' on' : ''); b.style.setProperty('--lc', L.color);
-    b.textContent = `${L.badge} ${L.name}`; b.onclick = () => { rankTab = L.id; renderRankScreen(); };
+  const cust = (LINE && LINE.custom) ? LINE : CUSTOM;
+  const tabList = cust ? [...LINES, cust] : LINES;
+  for (const L of tabList) {
+    const b = document.createElement('button'); b.className = 'rtab' + (L.id === rankTab ? ' on' : ''); b.style.setProperty('--lc', L.custom ? '#7a5cff' : L.color);
+    b.textContent = L.custom ? `🗺️ ${L.routeLabel}` : `${L.badge} ${L.name}`; b.onclick = () => { rankTab = L.id; renderRankScreen(); };
     tabs.append(b);
   }
-  const L = LINES.find(x => x.id === rankTab);
+  const L = tabList.find(x => x.id === rankTab) || LINES[1];
   const body = $('rankBody'); body.innerHTML = '';
   const { el, all } = boardList(L, 30, RK.uid);
   body.append(line(`${kstDay()} · ${L.stations[0]} → ${L.stations[L.stations.length - 1]} · ${all.length}명 출근`));
@@ -2768,6 +2794,92 @@ $('nickInput').addEventListener('change', () => { const n = cleanNick($('nickInp
 $('dailyToggle').addEventListener('change', () => { RK.daily = $('dailyToggle').checked; lsSet('ss.daily', RK.daily); });
 $('rankBtn').addEventListener('click', () => openRank());
 $('rankClose').addEventListener('click', () => $('rankScreen').classList.remove('show'));
+
+// ═════════════════════════ 내 출근길 만들기 (실제 구간 선택) ═════════════════════════
+const FULL = {
+  '2': { loop: true, note: '순환선: 더 짧은 방향으로 갑니다',
+    stations: ['시청', '을지로입구', '을지로3가', '을지로4가', '동대문역사문화공원', '신당', '상왕십리', '왕십리', '한양대', '뚝섬', '성수', '건대입구', '구의', '강변', '잠실나루', '잠실', '잠실새내', '종합운동장', '삼성', '선릉', '역삼', '강남', '교대', '서초', '방배', '사당', '낙성대', '서울대입구', '봉천', '신림', '신대방', '구로디지털단지', '대림', '신도림', '문래', '영등포구청', '당산', '합정', '홍대입구', '신촌', '이대', '아현', '충정로'],
+    xfer: { '시청': '1호선', '을지로3가': '3호선', '을지로4가': '5호선', '동대문역사문화공원': '4호선, 5호선', '신당': '6호선', '왕십리': '5호선, 경의중앙선, 수인분당선', '건대입구': '7호선', '잠실': '8호선', '종합운동장': '9호선', '선릉': '수인분당선', '강남': '신분당선', '교대': '3호선', '사당': '4호선', '신림': '신림선', '대림': '7호선', '신도림': '1호선', '영등포구청': '5호선', '당산': '9호선', '합정': '6호선', '홍대입구': '경의중앙선, 공항철도', '충정로': '5호선' } },
+  '4': { note: '당고개 ↔ 금정 구간',
+    stations: ['당고개', '상계', '노원', '창동', '쌍문', '수유', '미아', '미아사거리', '길음', '성신여대입구', '한성대입구', '혜화', '동대문', '동대문역사문화공원', '충무로', '명동', '회현', '서울역', '숙대입구', '삼각지', '신용산', '이촌', '동작', '총신대입구', '사당', '남태령', '선바위', '경마공원', '대공원', '과천', '정부과천청사', '인덕원', '평촌', '범계', '금정'],
+    xfer: { '노원': '7호선', '창동': '1호선', '성신여대입구': '우이신설선', '동대문': '1호선', '동대문역사문화공원': '2호선, 5호선', '충무로': '3호선', '서울역': '1호선, 공항철도, 경의중앙선', '삼각지': '6호선', '이촌': '경의중앙선', '동작': '9호선', '총신대입구': '7호선', '사당': '2호선', '금정': '1호선' } },
+  '9': { note: '급행 정차역만 (김포공항 ↔ 중앙보훈병원)',
+    stations: ['김포공항', '마곡나루', '가양', '염창', '당산', '여의도', '노량진', '동작', '고속터미널', '신논현', '선정릉', '봉은사', '종합운동장', '석촌', '올림픽공원', '중앙보훈병원'],
+    xfer: { '김포공항': '5호선, 공항철도, 김포골드라인, 서해선', '마곡나루': '공항철도', '당산': '2호선', '여의도': '5호선', '노량진': '1호선', '동작': '4호선', '고속터미널': '3호선, 7호선', '신논현': '신분당선', '선정릉': '수인분당선', '종합운동장': '2호선', '석촌': '8호선', '올림픽공원': '5호선' } },
+  'G': { note: '양촌 ↔ 김포공항',
+    stations: ['양촌', '구래', '마산', '장기', '운양', '걸포북변', '사우', '풍무', '고촌', '김포공항'],
+    xfer: { '김포공항': '5호선, 9호선, 공항철도, 서해선' } },
+};
+const MIN_STOPS = 3, MAX_STOPS = 14;
+let CUSTOM = null;
+
+function routePath(lineId, a, b) {
+  const F = FULL[lineId], st = F.stations, n = st.length;
+  const i = st.indexOf(a), j = st.indexOf(b);
+  if (i < 0 || j < 0 || i === j) return null;
+  if (F.loop) {
+    const fwd = [], back = [];
+    for (let k = i; ; k = (k + 1) % n) { fwd.push(st[k]); if (k === j) break; }
+    for (let k = i; ; k = (k - 1 + n) % n) { back.push(st[k]); if (k === j) break; }
+    return fwd.length <= back.length ? fwd : back;
+  }
+  return i < j ? st.slice(i, j + 1) : st.slice(j, i + 1).reverse();
+}
+function makeCustomLine(lineId, a, b) {
+  const base = LINES.find(L => L.id === lineId), F = FULL[lineId];
+  const path = routePath(lineId, a, b);
+  if (!path) return null;
+  const stops = path.length - 1;
+  return {
+    ...base, id: `${lineId}:${a}-${b}`, custom: true, baseId: lineId,
+    stations: path, transfer: path.filter(s => F.xfer[s]), xfer: F.xfer,
+    villains: Math.max(2, Math.min(base.villains, stops - 1)),
+    routeLabel: `${a} → ${b}`,
+    desc: `내 출근길 · ${a} → ${b} · ${stops}개 역`,
+  };
+}
+function fillSelect(sel, items, value) {
+  sel.innerHTML = '';
+  for (const it of items) { const o = document.createElement('option'); o.value = it; o.textContent = it; sel.append(o); }
+  if (value && items.includes(value)) sel.value = value;
+}
+function initRouteForm() {
+  const saved = lsGet('ss.route', { line: '2', from: '신도림', to: '강남' });
+  const rl = $('rLine');
+  rl.innerHTML = '';
+  for (const L of LINES) { const o = document.createElement('option'); o.value = L.id; o.textContent = `${L.badge} ${L.name} (${L.stars} ${L.label})`; rl.append(o); }
+  rl.value = FULL[saved.line] ? saved.line : '2';
+  const refill = (keep) => {
+    const st = FULL[rl.value].stations;
+    fillSelect($('rFrom'), st, keep && keep.from);
+    fillSelect($('rTo'), st, keep && keep.to || st[Math.min(st.length - 1, 6)]);
+    updateRouteInfo();
+  };
+  rl.onchange = () => refill(null);
+  $('rFrom').onchange = $('rTo').onchange = updateRouteInfo;
+  $('rSwap').onclick = () => { const a = $('rFrom').value; $('rFrom').value = $('rTo').value; $('rTo').value = a; updateRouteInfo(); };
+  $('rGo').onclick = () => {
+    if (!CUSTOM) return;
+    lsSet('ss.route', { line: rl.value, from: $('rFrom').value, to: $('rTo').value });
+    startLine(CUSTOM);
+  };
+  refill(saved);
+}
+function updateRouteInfo() {
+  const lineId = $('rLine').value, a = $('rFrom').value, b = $('rTo').value;
+  const info = $('rInfo'), go = $('rGo');
+  const path = routePath(lineId, a, b);
+  CUSTOM = null; go.disabled = true;
+  if (!path) { info.textContent = '출발역과 도착역을 다르게 골라 주세요.'; return; }
+  const stops = path.length - 1;
+  if (stops < MIN_STOPS) { info.textContent = `${stops}개 역은 너무 짧아요. ${MIN_STOPS}개 역 이상으로 골라 주세요.`; return; }
+  if (stops > MAX_STOPS) { info.textContent = `${stops}개 역은 한 판으로 너무 길어요. ${MAX_STOPS}개 역 이하로 골라 주세요. (환승역에서 끊어 타기 추천)`; return; }
+  CUSTOM = makeCustomLine(lineId, a, b);
+  go.disabled = false;
+  const mid = path.length > 5 ? `${path.slice(0, 3).join(' → ')} → … → ${path[path.length - 1]}` : path.join(' → ');
+  const n = boardFor(CUSTOM).length;
+  info.textContent = `${mid} · ${stops}개 역 · 환승역 ${CUSTOM.transfer.length}곳` + (FULL[lineId].note ? ` · ${FULL[lineId].note}` : '') + (RK.state === 'live' ? ` · 오늘 이 구간 출근자 ${n}명` : '');
+}
 
 // ═════════════════════════ 루프 ═════════════════════════
 let last = performance.now();
@@ -2803,6 +2915,7 @@ buildLineCards();
 LINE = LINES[1]; newStage1(); LINE = null;
 $('loading').remove();
 initRanking();
+initRouteForm();
 requestAnimationFrame(loop);
 window.__game = { get G() { return G; }, get P() { return P; }, get seats() { return seats; }, get people() { return people; }, start,
   get gates() { return gates; }, get qlines() { return qlines; }, LINES, startLine, stage2(c = null) { newGame(c); G.started = true; }, setSchedule(o) { SCHEDULE = o; },
