@@ -19,6 +19,8 @@
   #hud { position: absolute; top: 0; left: 0; right: 0; padding: 8px 12px 8px; background: linear-gradient(180deg, rgba(20,24,34,.95), rgba(20,24,34,.8)); }
   .hrow { display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; }
   .line { color: #33d17a; }
+  .vbtn { pointer-events: auto; border: 0; border-radius: 999px; padding: 2px 8px; margin-right: 6px; font: 800 11px inherit; font-family: inherit; background: #2f374a; color: #fff; cursor: pointer; }
+  .vbtn.off { opacity: .5; }
   #manner { color: #a8ffb0; }
   #map { display: block; width: 100%; height: 34px; margin-top: 2px; }
   #station { text-align: center; font-size: 19px; font-weight: 900; margin-top: 2px; }
@@ -75,7 +77,7 @@
   #fade.show { opacity: 1; }
   #fade b { font-size: 44px; color: #33d17a; }
   #fade span { font-size: 15px; color: #d8dbe6; font-weight: 700; }
-  #big { position: absolute; inset: 0; display: none; place-items: center; font-size: 72px; font-weight: 900; color: #fff; text-shadow: 0 0 0 #c2410c, 4px 4px 0 #c2410c, -2px -2px 0 #c2410c; }
+  #big { position: absolute; inset: 0; display: none; place-items: center; text-align: center; padding: 0 12px; font-size: clamp(30px, 10vw, 72px); font-weight: 900; color: #fff; text-shadow: 0 0 0 #c2410c, 4px 4px 0 #c2410c, -2px -2px 0 #c2410c; }
   #big.show { display: grid; animation: pop .35s ease-out; }
   @keyframes pop { from { transform: scale(3); opacity: 0; } to { transform: none; opacity: 1; } }
 
@@ -122,7 +124,7 @@
   <div id="floats"></div>
   <div id="gauge"><i></i></div><div id="gaugeLabel"></div>
   <div id="hud">
-    <div class="hrow"><span class="line" id="lineName">2호선 · 출근길</span><span id="manner">매너 +0</span></div>
+    <div class="hrow"><span class="line" id="lineName">2호선 · 출근길</span><span><button id="voiceBtn" class="vbtn" aria-label="안내방송 켜기/끄기">🔊 방송</button> <span id="manner">매너 +0</span></span></div>
     <canvas id="map"></canvas>
     <div id="station">다음 역</div>
     <div class="bar"><i id="timebar"></i></div>
@@ -152,7 +154,7 @@
   <p class="sub">4개 노선 · 개찰구 → 자리 쟁탈 · 출근길 2스테이지</p>
   <h2>스테이지</h2>
   <table>
-    <tr><td>1️⃣</td><td><b>개찰구</b>: 45초 안에 카드 찍고 승강장 계단까지. 일찍 탈수록 2스테이지를 <b>객차 안쪽</b>에서 시작</td></tr>
+    <tr><td>1️⃣</td><td><b>개찰구 → 승강장</b>: 카드 찍고 계단 내려가서 <b>스크린도어 앞 줄서기</b>. 열차가 꽉 차서 <b>못 타면 지각 = 실패</b>. 앞쪽으로 탈수록 2스테이지를 객차 안쪽에서 시작</td></tr>
     <tr><td>2️⃣</td><td><b>자리 쟁탈전</b>: 선릉 도착 전에 앉아라!</td></tr>
   </table>
   <h2>조작</h2>
@@ -183,13 +185,18 @@
     <tr><td>🔴</td><td><b>돌격대장 철수옹</b>: 한 줄 돌진 → <b>빨간 줄에서 피하기</b></td></tr>
     <tr><td>🟠</td><td><b>개찰구 수색대장</b> (1스테이지): 개찰구 막고 카드 찾기 → 옆 개찰구로 or 헛기침 3번</td></tr>
     <tr><td>🔴</td><td><b>환승 질주러</b> (1스테이지): 대합실 가로 질주 → <b>빨간 줄에서 피하기</b></td></tr>
+    <tr><td>🟠</td><td><b>끼어들기 장인</b> (승강장): 내 줄에 새치기 → 옆에서 행동 3번 = “줄 서세요!”</td></tr>
     <tr><td>🟠</td><td><b>캐리어 폭주족</b> (1스테이지): 캐리어에 발등 찍히면 기절 · 개찰구에 끼면 한동안 막힘</td></tr>
+    <tr><td>🟡</td><td><b>악기 마스터</b>: 노란 원 안 불쾌지수↑ → 원이 진해질 때 <b>박자 맞춰 박수 4번</b></td></tr>
+    <tr><td>🟡</td><td><b>도시락 빌런</b>: 초록 원 안 불쾌지수↑ → 옆에서 <b>눈치 3번</b></td></tr>
     <tr><td>🟡</td><td><b>볼륨 만렙러</b>: 보라색 원 안에서 불쾌지수↑ → 옆에서 <b>째려보기 4번</b></td></tr>
     <tr><td>🟠</td><td><b>백팩 회전술사</b>: 빨간 원 경고 후 회전 → 피한 뒤 어지러워할 때 <b>“앞으로 메세요!”</b></td></tr>
   </table>
   <h2>😤 불쾌지수</h2>
   <table>
     <tr><td>📈</td><td>사람과 <b>닿아 있을수록</b>, 비집을수록, 빌런에게 당할수록 올라감 → <b>100이 되면 싸움 발생 = 실패</b></td></tr>
+    <tr><td>🧍</td><td>개찰구·승강장은 <b>발자국 줄 끝에 서기</b>. 줄 앞이나 중간에 끼어들면 주변 사람 불쾌지수↑ (머리 위 😒😠🤬)</td></tr>
+    <tr><td>🤰</td><td><b>임산부 배려석</b>(분홍)은 늘 비어 있지만… 앉으면 주변 시선 폭발 = 실패</td></tr>
     <tr><td>📉</td><td>아무와도 안 닿으면 천천히 내려감 · <b>빌런 참교육 성공 시 -15</b> · 📱폰 보기 중엔 덜 오름</td></tr>
     <tr><td>☕</td><td>대합실 아이템: ☕ 커피(-30) · 🎧 노캔 이어폰(볼륨 빌런 무효) · 🍬 목캔디(-15)</td></tr>
   </table>
@@ -224,19 +231,19 @@ const LINES = [
   { id: '4', name: '4호선', badge: '④', color: '#00a5de', stars: '★', label: '쉬움', diff: 1,
     stations: ['사당', '총신대입구', '동작', '이촌', '신용산', '삼각지', '숙대입구', '서울역'],
     transfer: ['사당', '총신대입구', '동작', '이촌', '삼각지', '서울역'],
-    desc: '사당에서 서울역까지. 붐비긴 해도 숨은 쉴 만한 몸풀기 코스', crowd: 16, s1Time: 50, disc: .8, villains: 3, claim: 1.2 },
+    desc: '사당에서 서울역까지. 붐비긴 해도 숨은 쉴 만한 몸풀기 코스', crowd: 16, s1Time: 65, xfer: { '사당': '2호선', '총신대입구': '7호선', '동작': '9호선', '이촌': '경의중앙선', '삼각지': '6호선', '서울역': '1호선, 공항철도, 경의중앙선' }, disc: .8, villains: 3, claim: 1.2 },
   { id: '2', name: '2호선', badge: '②', color: '#00a84d', stars: '★★', label: '보통', diff: 2,
     stations: ['신림', '봉천', '서울대입구', '낙성대', '사당', '방배', '서초', '교대', '강남', '역삼', '선릉'],
     transfer: ['사당', '교대', '선릉'],
-    desc: '신림 → 강남 출근 벨트. 사당·교대에서 대이동이 일어난다', crowd: 22, s1Time: 45, disc: 1, villains: 5, claim: 1 },
+    desc: '신림 → 강남 출근 벨트. 사당·교대에서 대이동이 일어난다', crowd: 22, s1Time: 60, xfer: { '사당': '4호선', '교대': '3호선', '선릉': '수인분당선' }, disc: 1, villains: 5, claim: 1 },
   { id: '9', name: '9호선 급행', badge: '⑨', color: '#bdb092', stars: '★★★', label: '어려움', diff: 3,
     stations: ['김포공항', '마곡나루', '가양', '염창', '당산', '여의도', '노량진', '동작', '고속터미널', '신논현'],
     transfer: ['김포공항', '마곡나루', '당산', '여의도', '노량진', '동작', '고속터미널', '신논현'],
-    desc: '악명 높은 지옥철 급행. 타는 순간 발이 바닥에서 뜬다', crowd: 28, s1Time: 40, disc: 1.25, villains: 6, claim: .85 },
+    desc: '악명 높은 지옥철 급행. 타는 순간 발이 바닥에서 뜬다', crowd: 28, s1Time: 55, xfer: { '김포공항': '5호선, 공항철도, 김포골드라인, 서해선', '마곡나루': '공항철도', '당산': '2호선', '여의도': '5호선', '노량진': '1호선', '동작': '4호선', '고속터미널': '3호선, 7호선', '신논현': '신분당선' }, disc: 1.25, villains: 6, claim: .85 },
   { id: 'G', name: '김포골드라인', badge: 'G', color: '#a17e46', stars: '★★★★', label: '지옥', diff: 4,
     stations: ['구래', '마산', '장기', '운양', '걸포북변', '사우', '풍무', '고촌', '김포공항'],
     transfer: ['김포공항'],
-    desc: '2량짜리 꼬마 열차의 전설. 김포공항까지 살아서 앉을 수 있을까', crowd: 33, s1Time: 35, disc: 1.5, villains: 7, claim: .75 },
+    desc: '2량짜리 꼬마 열차의 전설. 김포공항까지 살아서 앉을 수 있을까', crowd: 33, s1Time: 50, xfer: { '김포공항': '5호선, 9호선, 공항철도, 서해선' }, disc: 1.5, villains: 7, claim: .75 },
 ];
 let LINE = null;
 let STATIONS = LINES[1].stations;
@@ -266,6 +273,9 @@ const VILLAINS = {
   runner:{ name: '환승 질주러', face: '🏃', grade: 'red', skill: '환승 대시', hint: '빨간 줄에서 벗어나라!' },
   speaker: { name: '볼륨 만렙러', face: '🔊', grade: 'yellow', skill: '강제 공유', hint: '보라색 원 안에선 불쾌지수↑ · 옆에서 째려보기 4번!' },
   backspin: { name: '백팩 회전술사', face: '🎒', grade: 'orange', skill: '360도 회전', hint: '빨간 원에서 피하고, 어지러울 때 “앞으로 메세요!”' },
+  instrument: { name: '악기 마스터', face: '🎷', grade: 'yellow', skill: '단독 콘서트', hint: '노란 원 안 불쾌지수↑ · 원이 진해질 때 박자 맞춰 박수 4번!' },
+  food: { name: '도시락 빌런', face: '🍱', grade: 'yellow', skill: '향기 테러', hint: '초록 원 안 불쾌지수↑ · 옆에서 눈치 3번!' },
+  cutter: { name: '끼어들기 장인', face: '😏', grade: 'orange', skill: '자연스러운 새치기', hint: '옆에서 행동 3번 = “줄 서세요!”' },
   suitcase: { name: '캐리어 폭주족', face: '🧳', grade: 'orange', skill: '발등 찍기', hint: '캐리어를 피해라! 개찰구에 끼면 한동안 막힘' },
 };
 const GRADE = {
@@ -577,8 +587,13 @@ class Person {
     } else { arms[0].rotation.x = -.6; arms[1].rotation.x = this.look.phone ? -1.0 : -.6; }
     if (this.stun > 0) root.rotation.z = Math.sin(performance.now() / 60) * .15; else root.rotation.z = 0;
     const top = this.sitting ? 1.7 : 1.85;
-    this.icon.visible = this.mood > 0 || this.stun > 0;
-    if (this.icon.visible) { this.icon.material.map = iconTex(this.stun > 0 ? '💫' : '😠'); this.icon.position.set(.18, top - .05, 0); }
+    const dl = this.disc || 0;
+    this.icon.visible = this.mood > 0 || this.stun > 0 || dl >= 30;
+    if (this.icon.visible) {
+      this.icon.material.map = iconTex(this.stun > 0 ? '💫' : dl >= 85 ? '🤬' : (this.mood > 0 || dl >= 60) ? '😠' : '😒');
+      const s = dl >= 85 ? .42 + .05 * Math.sin(performance.now() / 80) : .32; this.icon.scale.set(s, s, 1);
+      this.icon.position.set(.18, top - .05, 0);
+    }
     if (this.labelSp) this.labelSp.position.set(0, this.sitting ? -.02 : 1.66 + (this.labelHigh ? .3 : 0), 0);
     if (this.labelSp && this.sitting) this.labelSp.position.y = 1.58;
     if (this.sigSp) this.sigSp.position.y = top + .25;
@@ -622,25 +637,32 @@ function clearWorld() {
   clearItems();
   if (G && G.suit) scene.remove(G.suit.cs);
   auraMesh.material.opacity = 0; spinMesh.material.opacity = 0;
+  if (G && G.auras) for (const a of G.auras) scene.remove(a.m);
+  for (const st of seats.flat()) if (st.pinkSp) { scene.remove(st.pinkSp); st.pinkSp = null; }
   for (const st of seats.flat()) if (st.legSp) { scene.remove(st.legSp); st.legSp = null; }
 }
 
 function newGame(carry = null) {
   clearWorld();
-  stationGroup.visible = false; carGroup.visible = true; laneMesh.visible = true; lane2.material.opacity = 0;
+  stationGroup.visible = false; platformGroup.visible = false; carGroup.visible = true; laneMesh.visible = true; lane2.material.opacity = 0;
   for (const w of windows) w.material = windowMat;
   seats = [0, 1].map(side => Array.from({ length: SEATS }, (_, i) => ({ side, i, z: seatZ(i), occ: null, blocked: false, bagIncoming: false, claimAt: null, reservedBy: null })));
   G = {
-    phase: 'run', t: 0, clock: 0, runDur: 9, arriveDur: 4.8, next: 1, floats: [], bags: [], shake: 0,
+    phase: 'run', t: 0, clock: 0, runDur: 16, arriveDur: 6.5, next: 1, floats: [], bags: [], shake: 0,
     warn: null, cutin: null, boss: null, jjeok: null, thrower: null, announceT: 0, endStop: null, winT: null, thrownAt: -1,
-    stage: 2, carry, speaker: null, spin: null,
+    stage: 2, carry, speaker: null, spin: null, auras: [],
   };
   // 스테이지 1 결과: 일찍 탈수록 객차 안쪽(좌석 근처)에서 시작
-  const early = carry && carry.left >= LINE.s1Time / 3;
+  const early = carry && carry.early;
   const startZ = !carry ? 1.6 : carry.late ? 2.3 : early ? -2.8 : .4;
   makePlayer(0, startZ, Math.PI);
   if (carry) { P.manner = carry.manner; P.counters = carry.counters; P.bag = carry.bag; P.phone = carry.phone; P.parts.phone.visible = P.phone; setBagLook(); P.disc = carry.disc * .7; P.ear = carry.ear; P.caffeine = carry.caffeine; }
   for (const side of [0, 1]) for (const s of seats[side]) {
+    if (isPink(s)) {
+      s.pink = true;
+      s.pinkSp = makeSprite(labelTex('🤰 임산부 배려석', '#ff8fb8'), .9, .2); s.pinkSp.position.set(SEAT_X[side], 1.15, s.z); scene.add(s.pinkSp);
+      continue;   // 보통 비어 있음 (유혹)
+    }
     const n = new Person({ look: npcLook(), stop: genStop(1), side });
     n.sitOn(s);
   }
@@ -649,6 +671,7 @@ function newGame(carry = null) {
   assignSignals();
   announce(!carry ? `이번 열차는 ${STATIONS[LAST]} 방면입니다. 자리를 노려보세요!` : carry.late ? '문 닫히기 직전 겨우 탑승… 문 앞에 끼어서 출발!' : early ? '여유 있게 탑승! 객차 안쪽까지 들어왔다.' : '탑승 완료! 자리를 노려보세요.', 3.5);
   stageTitle('STAGE 2', `자리 쟁탈전 · ${STATIONS[LAST]}까지 앉아라!`);
+  stopVoice(); setTimeout(() => { if (G && G.stage === 2 && G.phase === 'run') sayNext(STATIONS[G.next]); }, 1200);
   $('endScreen').classList.remove('show'); $('big').classList.remove('show');
 }
 
@@ -674,7 +697,8 @@ function announce(txt, dur = 3) { const a = $('announce'); a.textContent = '📢
 const toScreen = (() => { const v = new THREE.Vector3(); return (x, y, z) => { v.set(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, vis: v.z < 1 }; }; })();
 
 // ═════════════════════════ 역 진행 ═════════════════════════
-function nearestDoor(p) { let b = DOORS[0], bd = 1e9; for (const d of DOORS) { const dd = dist(p, d); if (dd < bd) { bd = dd; b = d; } } return b; }
+function sideDoors() { return G && G.stage === 2 && G.doorSide != null ? DOORS.filter(d => (d.x > 0) === (G.doorSide === 1)) : DOORS; }
+function nearestDoor(p) { let b = DOORS[0], bd = 1e9; for (const d of sideDoors()) { const dd = dist(p, d); if (dd < bd) { bd = dd; b = d; } } return b; }
 function leave(p) {
   if (p.seat) { const s = p.seat; s.occ = null; p.seat = null; p.setSit(false); p.x = FRONT_X[s.side] * .8; if (!s.blocked) scheduleClaim(s); }
   p.setSignal(null);
@@ -683,7 +707,8 @@ function leave(p) {
   p.goTo(d.x * .92, d.z, 'leave', () => p.remove());
 }
 function startRun() {
-  G.phase = 'run'; G.t = 0; G.next++; G.runDur = rand(9, 11); G.warn = null;
+  G.phase = 'run'; G.t = 0; G.next++; G.runDur = rand(18, 23); G.warn = null; G.saidThis = false;
+  announce(sayNext(STATIONS[G.next]), 4);
   assignSignals();
 }
 function startArrival() {
@@ -692,7 +717,8 @@ function startArrival() {
   G.phase = 'arrive'; G.t = 0; G.boarded = false; G.refilled = false;
   SFX.chime();
   const v = SCHEDULE[k];
-  announce(v ? `이번 역은 ${STATIONS[k]}. 🚨 빌런이 탑승합니다! 자리를 사수하세요.` : `이번 역은 ${STATIONS[k]}, ${STATIONS[k]}역입니다.${TRANSFER.has(STATIONS[k]) ? ' (환승역)' : ''}`, 3.5);
+  G.doorSide = doorSideOf(STATIONS[k]); G.saidClose = false;
+  announce(v ? `${STATIONS[k]}역 · 🚨 빌런이 탑승합니다! 자리를 사수하세요.` : `${STATIONS[k]}역 · ${G.doorSide ? '오른쪽' : '왼쪽'} 문이 열립니다`, 3.5);
   for (const o of seatedNpcs()) { o.setSignal(null); o.sigShown = false; }
   for (const p of [...people]) {
     if (p.kind === 'npc' && p.stop === k && p.state !== 'leave') leave(p);
@@ -711,7 +737,7 @@ function refill() {
   let n = people.filter(p => p.kind === 'npc' && !p.sitting && p.state !== 'leave').length;
   while (n < target) {
     const sp = freeSpot(Math.random() < .4 ? P.z : null) || freeSpot(); if (!sp) break;
-    const d = pick(DOORS);
+    const d = pick(sideDoors());
     const p = new Person({ look: npcLook(), x: d.x * .95, z: d.z, stop: genStop(G.next + 1) });
     p.goTo(sp.x, sp.z, 'board', () => { p.state = 'stand'; });
     n++;
@@ -719,7 +745,7 @@ function refill() {
 }
 
 // ═════════════════════════ 빌런 ═════════════════════════
-const emptySeats = () => seats.flat().filter(s => !s.occ && !s.blocked && !s.bagIncoming);
+const emptySeats = () => seats.flat().filter(s => !s.occ && !s.blocked && !s.bagIncoming && !s.pink);
 function showCutin(type, verb = '빌런 탑승!') {
   const V = VILLAINS[type], gr = GRADE[V.grade];
   const ci = $('cutin'); ci.style.borderColor = gr.color;
@@ -733,6 +759,7 @@ function boardVillain(type) {
   showCutin(type);
   const gc = gr.color;
   if (type === 'speaker' || type === 'backspin') return boardExtra(type, V, gc);
+  if (type === 'instrument' || type === 'food') return boardAura(type, V, gc);
 
   if (type === 'jjeok') {
     let s = pick(emptySeats());
@@ -766,6 +793,7 @@ function boardVillain(type) {
 
 function updateVillains(dt) {
   updateExtraVillains(dt);
+  updateAuras(dt);
   const J = G.jjeok;
   if (J && J.coughs > 0) { J.coughT -= dt; if (J.coughT <= 0) J.coughs = 0; }
 
@@ -885,7 +913,7 @@ function cough() {
 // ═════════════════════════ NPC 착석 ═════════════════════════
 function updateClaims() {
   for (const s of seats.flat()) {
-    if (s.occ || s.blocked || s.bagIncoming || s.reservedBy) continue;
+    if (s.occ || s.blocked || s.bagIncoming || s.reservedBy || s.pink) continue;
     if (s.claimAt == null) { scheduleClaim(s); continue; }
     if (G.clock < s.claimAt) continue;
     const f = front(s);
@@ -984,6 +1012,7 @@ function action() {
   if (P.bagSwitch > 0) return;
   if (nearJjeok()) return cough();
   if (nearSpeaker()) return stare();
+  const au = nearAura(); if (au) return actAura(au);
   if (nearSpinner()) return fixSpinner();
   const s = nearSeat();
   if (s) return playerSit(s);
@@ -1002,7 +1031,7 @@ function setBagLook() {
   else { bag.position.set(0, .7, .25); bag.scale.set(.85, .8, .8); }
 }
 // 이동 가능 영역 + 사각 장애물 (스테이지별)
-function bounds() { return G.stage === 1 ? S1_BOUNDS : { x0: -AISLE, x1: AISLE, z0: Z_MIN, z1: Z_MAX }; }
+function bounds() { return G.stage === 1 ? (G.phase === 'gate' ? S1_BOUNDS : PL_BOUNDS) : { x0: -AISLE, x1: AISLE, z0: Z_MIN, z1: Z_MAX }; }
 function clampIn(o) { const b = bounds(); o.x = clamp(o.x, b.x0, b.x1); o.z = clamp(o.z, b.z0, b.z1); }
 function pushOutRects(o, r) {
   if (G.stage !== 1) return null;
@@ -1058,6 +1087,8 @@ function updatePlayer(dt) {
   if (P.passing && (P.passing.sitting || !people.includes(P.passing) || dist(P, P.passing) > pRadius() + NPC_R + .05)) P.passing = null;
   for (const n of people) {
     if (n === P || !n.solid() || n === P.passing) continue;
+    // 같은 줄에선 바로 앞사람하고만 부딪힘 (새치기 시도용)
+    if (P.qLine && n.qLine === P.qLine && P.qLine.q.indexOf(n) !== P.qLine.q.indexOf(P) - 1) continue;
     const ddx = P.x - n.x, ddz = P.z - n.z, d = Math.hypot(ddx, ddz), minD = pRadius() + NPC_R;
     if (d < minD && d > 1e-4) {
       P.x = n.x + ddx / d * minD; P.z = n.z + ddz / d * minD;
@@ -1067,7 +1098,7 @@ function updatePlayer(dt) {
   }
   clampIn(P);
   const flap = pushOutRects(P, pRadius());
-  if (G.stage === 1) guardFlaps(prevZ);
+  if (G.stage === 1 && G.phase === 'gate') guardFlaps(prevZ);
   if (flap && moved && P.pushMsgT <= 0 && !flap.openFor) { float('삑— 카드를 찍어주세요', { x: P.x, y: 2, z: P.z }, '#ffd166', 13); P.pushMsgT = 1.4; SFX.thud(); }
 
   if (pushing && pushing.kind === 'npc') {
@@ -1078,7 +1109,7 @@ function updatePlayer(dt) {
       P.pushT = 0; P.pushTarget = null;
       if (P.bag === 'back' && Math.random() < .4) {
         P.stuck = { who: pushing, taps: 0, need: 6, t: 0, dx, dz };
-        pushing.mood = 2.5; P.manner -= 4; G.shake = .2; SFX.stuck(); addDisc(8);
+        pushing.mood = 2.5; P.manner -= 4; G.shake = .2; SFX.stuck(); addDisc(8); annoy(pushing, 25);
         float('🎒 가방 걸림!! 연타!', { x: P.x, y: 2.1, z: P.z }, '#ff6b6b', 18, 1.6);
         float('아 가방!! 😠', { x: pushing.x, y: 1.9, z: pushing.z }, '#ffb3b3', 14);
       } else {
@@ -1087,6 +1118,8 @@ function updatePlayer(dt) {
         const px = -dz, pz = dx; const side = Math.sign((pushing.x - P.x) * px + (pushing.z - P.z) * pz) || 1;
         pushing.x += px * side * .3; pushing.z += pz * side * .3; clampIn(pushing);
         addDisc(P.bag === 'front' ? 1.5 : 3);
+        annoy(pushing, P.bag === 'front' ? 8 : 15);
+        onSqueezePass(pushing);
         if (P.bag === 'front') { P.manner += 2; float('실례합니다 🙏', { x: P.x, y: 2, z: P.z }, '#a8ffb0', 13, 1); }
         else float('슥-', { x: P.x, y: 2, z: P.z }, '#fff', 13, .7);
       }
@@ -1117,6 +1150,7 @@ function relaxCrowd(dt) {
 // ═════════════════════════ 종료 ═════════════════════════
 function currentStop() { if (G.endStop != null) return G.endStop; return G.phase === 'arrive' ? G.next : G.next - 1; }
 function playerSit(s) {
+  if (s.pink) return pregnantSeatFail(s);
   let bounced = false;
   for (const b of G.bags) if (b.seat === s && !b.back) {
     b.back = true; b.t = 0; b.dur = .6; [b.sx, b.ex] = [b.ex, b.sx]; [b.sz, b.ez] = [b.ez, b.sz]; bounced = true;
@@ -1146,7 +1180,7 @@ function playerSit(s) {
 }
 function stage1Rows() {
   const c = G.carry; if (!c) return [];
-  return [c.late ? ['💳', '개찰구: 문 닫히기 직전 탑승', -100] : ['💳', `개찰구: 열차 도착 ${c.left}초 전 탑승`, c.left * 10]];
+  return [['🚪', `승강장 줄: ${c.idx + 1}번째로 탑승 (문당 ${c.cap}명)`, (c.cap - c.idx) * 30 - (c.late ? 60 : 0)]];
 }
 function failGame() {
   G.endStop = LAST; G.phase = 'end';
@@ -1187,7 +1221,7 @@ function update(dt) {
   tunnelTex.offset.x += dt * (running ? 1.6 : 0);
   for (const w of windows) w.material = running || G.phase === 'end' ? windowMat : platformMat;
   const open = G.phase === 'arrive' ? clamp(Math.min(G.t, G.arriveDur - G.t) * 3, 0, 1) : 0;
-  for (const d of doorPanels) d.m.position.z = d.base + d.dir * open * .62;
+  for (const d of doorPanels) d.m.position.z = d.base + d.dir * (Math.sign(d.m.position.x) === (G.doorSide ? 1 : -1) ? open : 0) * .62;
 
   if (G.phase !== 'end') {
     G.t += dt;
@@ -1195,11 +1229,13 @@ function update(dt) {
       for (const o of seatedNpcs()) if (o.sig && !o.sigShown && G.t >= o.sigAt) { o.sigShown = true; o.setSignal(o.sig); }
       const v = SCHEDULE[G.next];
       if (v && !G.warn && G.runDur - G.t <= 3.2) { G.warn = v; showWarn(v); SFX.siren(8); }
+      if (!G.saidThis && G.runDur - G.t <= 7) { G.saidThis = true; announce(sayThis(STATIONS[G.next]), 5); }
       if (G.t >= G.runDur) { $('warn').classList.remove('show'); startArrival(); }
     } else if (G.phase === 'arrive') {
       const v = SCHEDULE[G.next];
       if (v && !G.boarded && G.t >= .2) { G.boarded = true; boardVillain(v); }
-      if (!G.refilled && G.t >= 2.4) { G.refilled = true; refill(); }
+      if (!G.refilled && G.t >= 3.0) { G.refilled = true; refill(); }
+      if (!G.saidClose && G.t >= G.arriveDur - 1.8) { G.saidClose = true; speak('출입문 닫습니다.'); announce('출입문 닫습니다.', 1.8); }
       if (G.t >= G.arriveDur) startRun();
     }
     updatePlayer(dt);
@@ -1258,7 +1294,7 @@ function drawHUD2() {
   const cur = currentStop();
   $('manner').textContent = `매너 ${P.manner >= 0 ? '+' : ''}${P.manner}`;
   $('manner').style.color = P.manner >= 0 ? '#a8ffb0' : '#ff9a9a';
-  $('station').textContent = G.phase === 'arrive' ? `${STATIONS[G.next]} 도착 · 하차 중` : G.phase === 'run' ? `다음 역: ${STATIONS[G.next]}` : (G.winT != null ? '착석 완료!' : `${STATIONS[LAST]} 도착`);
+  $('station').textContent = G.phase === 'arrive' ? `${STATIONS[G.next]} 도착 · 하차 중` : G.phase === 'run' ? `다음 역: ${STATIONS[G.next]}` : (G.winT != null ? '착석 완료!' : G.endLabel || `${STATIONS[LAST]} 도착`);
   $('station').style.color = G.phase === 'arrive' ? '#ffe9a8' : '#fff';
   $('timebar').style.width = (G.phase === 'run' ? clamp(1 - G.t / G.runDur, 0, 1) * 100 : 0) + '%';
   $('timebar').style.background = '#33d17a';
@@ -1284,7 +1320,8 @@ function drawHUD2() {
   else if (nearJjeok()) { label = `헛기침<br><small>${G.jjeok.coughs}/3</small>`; cls = 'cough'; }
   else if (nearSpeaker()) { label = `👀 째려보기<br><small>${G.speaker.stares}/4</small>`; cls = 'cough'; }
   else if (nearSpinner()) { label = '🎒 앞으로<br>메세요!'; cls = 'cough'; }
-  else if (nearSeat()) { label = '🪑<br>앉기!'; cls = 'ready'; }
+  else if (nearAura()) { const a = nearAura(); label = a.type === 'instrument' ? `👏 박자 박수<br><small>${a.count}/4</small>` : `😑 눈치<br><small>${a.count}/3</small>`; cls = 'cough'; }
+  else if (nearSeat()) { const ns = nearSeat(); if (ns.pink) { label = '🤰 배려석<br><small>앉을까…?</small>'; cls = 'cough'; } else { label = '🪑<br>앉기!'; cls = 'ready'; } }
   else label = '행동<br><small>Space</small>';
   setActBtn(label, cls);
 }
@@ -1300,7 +1337,7 @@ function drawCommonHUD() {
   $('discFace').textContent = d >= 85 ? '🤬' : d >= 60 ? '😡' : d >= 35 ? '😣' : '😐';
   $('discNum').style.color = d >= 80 ? '#ff6b6b' : d >= 50 ? '#ffd23f' : '#a8ffb0';
   $('rage').style.opacity = d >= 60 && G.phase !== 'end' ? ((d - 60) / 40) * (.6 + .4 * Math.sin(G.clock * (4 + d / 10))) : 0;
-  $('buffs').textContent = (P.caffeine ? '☕' : '') + (P.ear ? '🎧' : '') + (P.touch ? ` 접촉 ${P.touch}명` : '');
+  $('buffs').textContent = (P.caffeine ? '☕' : '') + (P.ear ? '🎧' : '') + (P.touch ? ` 접촉 ${P.touch}명` : '') + (P.worst >= 30 ? ` · 옆사람 ${P.worst >= 85 ? '🤬' : P.worst >= 60 ? '😠' : '😒'}${Math.round(P.worst)}` : '');
   $('manner').textContent = `매너 ${P.manner >= 0 ? '+' : ''}${P.manner}`;
   $('manner').style.color = P.manner >= 0 ? '#a8ffb0' : '#ff9a9a';
   const w = $('warn');
@@ -1338,6 +1375,7 @@ function updateSeatsVisual() {
   for (const s of seats.flat()) {
     const m = seatMeshes[s.side][s.i].material;
     if (s.blocked) { m.color.set('#8b6a2b'); m.emissive.set('#000'); }
+    else if (s.pink) { const mine = dist(P, front(s)) < .65 && !P.seated; m.color.set('#ff8fb8'); m.emissive.set('#ff4f8b'); m.emissiveIntensity = mine ? .5 + pulse * .4 : .15; }
     else if (!s.occ) {
       const mine = dist(P, front(s)) < .65 && !P.seated;
       m.color.set(mine ? '#3ee08a' : '#3c7bbf'); m.emissive.set(mine ? '#1a8f4a' : '#c8b400'); m.emissiveIntensity = mine ? .6 : pulse * .7;
@@ -1401,6 +1439,11 @@ adopt(stationGroup, function buildStation() {
       pad.name = 'pad';
     }
   }
+  // 개찰구 줄서기 발자국
+  for (const gx of GATE_X) for (let k = 0; k < 8; k++) {
+    const m = mesh(new THREE.PlaneGeometry(.3, .16), new THREE.MeshBasicMaterial({ color: '#e8c64a', transparent: true, opacity: k ? .45 : .9 }), gx, .007, GATE_Z + .8 + k * .62, scene, false);
+    m.rotation.x = -Math.PI / 2;
+  }
   // 펜스
   mesh(box(1.2, 1.0, .08), M('#9aa6bd', { transparent: true, opacity: .75 }), -3.15, .5, GATE_Z);
   mesh(box(1.2, 1.0, .08), M('#9aa6bd', { transparent: true, opacity: .75 }), 3.15, .5, GATE_Z);
@@ -1435,6 +1478,7 @@ function drawBoard(sec) {
 }
 
 function stage1Rects(forPlayer) {
+  if (G.phase !== 'gate') return [];
   if (!forPlayer) return S1_STATIC_RECTS;
   const out = S1_STATIC_RECTS.slice();
   for (const g of gates) if (g.openFor !== P) out.push({ x0: g.gx - .36, x1: g.gx + .36, z0: GATE_Z - .06, z1: GATE_Z + .06, flap: g });
@@ -1448,14 +1492,17 @@ function stageTitle(t, sub) {
 }
 
 function newStage1() {
-  clearWorld();
-  stationGroup.visible = true; carGroup.visible = false; laneMesh.visible = false; lane2.material.opacity = 0;
+  clearWorld(); stopVoice();
+  for (const L of qlines) L.q = [];
+  stationGroup.visible = true; platformGroup.visible = false; carGroup.visible = false; laneMesh.visible = false; lane2.material.opacity = 0;
   G = {
     stage: 1, phase: 'gate', t: 0, clock: 0, timeLeft: LINE.s1Time, items: null, suit: null, next: 1, floats: [], bags: [], shake: 0, announceT: 0, cutin: 0,
     endStop: null, winT: null, spawnT: 0, warned: {}, gateV: null, runner: null, boardSec: -1, carry: null,
   };
   for (const g of gates) for (const f of g.flaps) stationGroup.remove(f.pivot);
   gates = GATE_X.map((gx, i) => ({ i, gx, busy: null, openFor: null, npcOpen: 0, open: 0, blockedBy: null, flaps: [] }));
+  for (const g of gates) g.L = { x: g.gx, z0: GATE_Z + .8, gap: .62, q: [], gate: g, d: g.i };
+  gateLines = gates.map(g => g.L);
   makePlayer(rand(-1, 1), 5.6, Math.PI);
   P.disc = 0;
   spawnItems();
@@ -1470,7 +1517,7 @@ function chooseGate() {
   let best = null, bc = 1e9;
   for (const g of gates) {
     if (g.blockedBy) continue;
-    const c = people.filter(p => p.gate === g && (p.state === 'flow' || p.state === 'wait' || p.state === 'tap')).length + Math.random() * .8;
+    const c = g.L.q.length + (g.busy ? 1 : 0) + Math.random() * .8;
     if (c < bc) { bc = c; best = g; }
   }
   return best || gates[2];
@@ -1482,16 +1529,18 @@ function spawnFlow(z = 6.2) {
 }
 function sendToGate(n) {
   const g = chooseGate(); n.gate = g;
-  n.goTo(g.gx + rand(-.12, .12), GATE_Z + .75 + rand(0, .7), 'flow', () => { n.state = 'wait'; n.rot = Math.PI; });
+  joinQueue(n, g.L); n.state = 'queue';
 }
 
 function updateGates(dt) {
   for (const g of gates) {
     // NPC 차례
-    if (!g.busy && gateAtPlayer() !== g) {
-      let who = null, bd = 1.3;
-      for (const p of people) if (p.gate === g && p.state === 'wait' && p.stun <= 0) { const d = Math.hypot(p.x - g.gx, p.z - (GATE_Z + .75)); if (d < bd) { bd = d; who = p; } }
-      if (who) { g.busy = who; who.state = 'tap'; who.tapT = rand(.35, .9); who.goTo(g.gx, GATE_Z + .7, 'tap', () => { who.state = 'tap'; }); }
+    if (!g.busy && !g.blockedBy) {
+      const who = g.L.q[0];
+      if (who && who !== P && who.kind === 'npc' && who.stun <= 0 && Math.hypot(who.x - g.gx, who.z - g.L.z0) < .2) {
+        g.L.q.shift(); who.qLine = null;
+        g.busy = who; who.state = 'tap'; who.tapT = rand(.35, .9); who.target = null;
+      }
     }
     const b = g.busy;
     if (b && b !== P && b.kind === 'npc') {
@@ -1550,6 +1599,11 @@ function nearGateVillain() { const V = G.gateV; return V && !V.done && dist(P, V
 function action1() {
   if (P.stuck) { P.stuck.taps++; SFX.squeeze(); float('빼!', { x: P.x + rand(-.3, .3), y: 2.0, z: P.z }, '#ff9a9a', 14, .5); return; }
   if (P.stun > 0) { float('어질어질...', { x: P.x, y: 2, z: P.z }, '#ccc', 13, .7); return; }
+  if (G.phase === 'platform' || G.phase === 'train') {
+    if (nearCutter()) return scoldCutter();
+    float(P.qLine ? '줄 서서 기다리는 중… 🧍' : '노란 발자국 줄 끝으로 가세요', { x: P.x, y: 2, z: P.z }, '#cfd6ff', 12);
+    return;
+  }
   if (P.bagSwitch > 0 || G.phase !== 'gate') return;
   if (nearGateVillain()) return cough1();
   const g = gateAtPlayer();
@@ -1557,6 +1611,12 @@ function action1() {
   if (g.blockedBy) { float('수색대장이 막고 있다… 옆 개찰구로!', { x: P.x, y: 2, z: P.z }, '#ffb3b3', 13); return; }
   if (g.busy && g.busy !== P) { float('앞사람이 찍는 중…', { x: P.x, y: 2, z: P.z }, '#cfd6ff', 12); return; }
   if (g.openFor === P) { float('열렸어요! 지나가세요 ⬆', { x: P.x, y: 2, z: P.z }, '#a8ffb0', 13); return; }
+  if (g.L.q.length && g.L.q[0] !== P && g.busy !== P) {
+    const ahead = P.qLine === g.L ? playerQueueIdx() : g.L.q.length;
+    float(`줄 서세요! 앞에 ${ahead}명 😠`, { x: P.x, y: 2.1, z: P.z }, '#ff9a9a', 14);
+    for (const n of g.L.q.slice(0, 2)) if (n !== P) annoy(n, 15);
+    return;
+  }
   g.busy = P;
   // 카드 꺼내기
   if (P.search) {
@@ -1582,7 +1642,7 @@ function action1() {
     float('카드를 한 장만 대주세요', { x: g.gx, y: 1.8, z: GATE_Z + .4 }, '#ff9a9a', 14, 1.4);
     return;
   }
-  g.openFor = P; SFX.pop(); tone(1320, .05, .12, 'sine', .08);
+  g.openFor = P; leaveQueue(P); SFX.pop(); tone(1320, .05, .12, 'sine', .08);
   float(P.phone ? '삑! 모바일 승차입니다 📱' : '삑! 승차입니다', { x: g.gx, y: 1.8, z: GATE_Z + .4 }, '#7ee0ff', 15);
 }
 function cough1() {
@@ -1614,7 +1674,7 @@ function updateStage1Villains(dt) {
     if (g.busy && g.busy !== P) { const b = g.busy; if (b.state === 'tap') { b.state = 'wait'; sendToGate(b); } }
     const p = new Person({ kind: 'villain', vtype: 'gate', look: { coat: '#7a4a8a', pants: '#3b3b44', hair: '#2b2420', longHair: true, handbag: true }, x: g.gx, z: 3.5, label: VILLAINS.gate.name, labelColor: GRADE.orange.color, speed: 2.4 });
     g.blockedBy = p; g.busy = p;
-    for (const n of people) if (n.gate === g && n.kind === 'npc' && (n.state === 'flow' || n.state === 'wait')) sendToGate(n);
+    for (const n of [...g.L.q]) if (n !== P && n.kind === 'npc') { leaveQueue(n); sendToGate(n); }
     p.goTo(g.gx, GATE_Z + .7, 'board', () => { p.state = 'stand'; p.rot = Math.PI; });
     G.gateV = { p, gate: g, coughs: 0, coughT: 0, done: false, msgT: 1.5, t0: t };
     showCutin('gate', '빌런 출현!');
@@ -1686,7 +1746,8 @@ function updateStage1(dt) {
     G.t += dt; G.timeLeft -= dt;
     const sec = Math.max(0, Math.ceil(G.timeLeft));
     if (sec !== G.boardSec) { G.boardSec = sec; drawBoard(sec); if (sec <= 5 && sec > 0) tone(880, 0, .08, 'square', .03); }
-    if (G.timeLeft <= 15 && !G.warned.train) { G.warned.train = 1; announce(`${STATIONS[LAST]} 방면 열차가 곧 들어옵니다. 승강장으로 서두르세요!`, 3.5); SFX.chime(); }
+    if (G.timeLeft <= 15 && !G.warned.train) { G.warned.train = 1; const t = `전 역에서 ${STATIONS[LAST]} 방면 열차가 출발하였습니다. 승강장으로 서두르세요!`; announce(t, 3.5); speak(`전 역에서 ${STATIONS[LAST]} 방면 열차가 출발하였습니다.`); SFX.chime(); }
+    if (G.timeLeft <= 0 && !G.warned.arrive) { G.warned.arrive = 1; const t = `지금 ${STATIONS[LAST]} 방면으로 가는 열차가 들어오고 있습니다.`; announce(t + ' 🏃 서둘러!!', 4); speak(t, { interrupt: true }); }
     G.spawnT -= dt;
     if (G.spawnT <= 0) { G.spawnT = rand(.55, 1.0) * 16 / LINE.crowd; if (people.filter(p => p.kind === 'npc').length < LINE.crowd) spawnFlow(); }
     // 카드 꺼내기 (앞가방 자동)
@@ -1696,11 +1757,20 @@ function updateStage1(dt) {
       else if (!P.search.auto && P.search.t > 1) {
         // 뒤에 줄 선 사람들 짜증
         P.search.t = 0; P.manner -= 1; addDisc(2);
-        for (const n of people) if (n.kind === 'npc' && n.state === 'wait' && dist(n, P) < 1.6) n.mood = 1.2;
+        for (const n of people) if (n.kind === 'npc' && n.qLine && dist(n, P) < 2) { n.mood = 1.2; annoy(n, 6); }
         float('(뒤에서 한숨…) 매너 -1', { x: P.x, y: 2.3, z: P.z + .5 }, '#ff9a9a', 11, 1);
       }
     }
+    syncQueueNpcs(gateLines);
+    playerQueue(gateLines, dt);
     updateGates(dt);
+    checkCutting(gateLines, dt);
+    // 맨 앞에 서서 안 찍고 버티면 뒷사람들 짜증
+    const fl = P.qLine && P.qLine.gate;
+    if (fl && P.qLine.q[0] === P && fl.busy !== P) {
+      P.idleFront = (P.idleFront || 0) + dt;
+      if (P.idleFront > 2.5) { for (const n of P.qLine.q.slice(1, 3)) annoy(n, 8 * dt); if (P.idleFront % 3 < dt) float('저기요… 안 찍으세요?', { x: P.x, y: 2.3, z: P.z + .7 }, '#ffb3b3', 13); }
+    } else P.idleFront = 0;
     updateStage1Villains(dt);
     updateSuitcase(dt);
     updateItems();
@@ -1708,25 +1778,33 @@ function updateStage1(dt) {
     updateDisc(dt);
     if (G.phase !== 'gate') return;
     if (P.search && !P.search.auto) { const g = gateAtPlayer(); if (!g) P.search = null; }
-    if (P.z < STAIRS_Z) stage1Done(false);
-    else if (G.timeLeft <= 0) stage1Done(true);
+    if (P.z < STAIRS_Z) enterPlatform();
+    else if (G.timeLeft <= -9) missedTrain();
+  } else if (G.phase === 'platform' || G.phase === 'train') {
+    G.t += dt; G.timeLeft -= dt;
+    const sec = Math.max(0, Math.ceil(G.timeLeft));
+    if (sec !== G.boardSec) { G.boardSec = sec; drawBoard(sec); if (sec <= 5 && sec > 0) tone(880, 0, .08, 'square', .03); }
+    updatePlatform(dt);
+    if (G.phase === 'end') { /* 지각 */ }
+    else if (!P.boardedTrain) { updatePlayer(dt); updateDisc(dt); }
+    else { const tx = P.qDoorX ?? P.x; P.x = lerp(P.x, tx, .1); P.z = lerp(P.z, PSD_Z - .8, .08); P.moving = 1; P.sync(dt); }
   }
-  drawFlaps();
+  if (G.phase === 'gate') drawFlaps();
   for (const p of people) if (p !== P) p.update(dt);
   relaxCrowd(dt);
   for (const p of people) if (p.kind === 'npc' && p.state === 'wait') pushOutRects(p, NPC_R);
 }
 
-function stage1Done(late) {
-  if (G.phase !== 'gate') return;
+function stage1Done({ idx, cap }) {
+  if (G.phase === 'end' || G.phase === 'boarding') return;
   G.phase = 'boarding';
   $('warn').classList.remove('show'); $('cutin').classList.remove('show');
   lane2.material.opacity = 0;
-  const left = Math.max(0, Math.ceil(G.timeLeft));
-  const carry = { manner: P.manner, counters: P.counters, left, late, bag: P.bag, phone: P.phone, disc: P.disc || 0, ear: P.ear, caffeine: P.caffeine };
+  const early = idx < cap / 3, late = idx >= cap * 2 / 3;
+  const carry = { manner: P.manner, counters: P.counters, idx, cap, early, late, bag: P.bag, phone: P.phone, disc: P.disc || 0, ear: P.ear, caffeine: P.caffeine };
   SFX.chime();
   const f = $('fade');
-  f.innerHTML = late ? '<b>열차 진입!</b><span>문 닫히기 직전 겨우 탑승… 🫠</span>' : `<b>탑승!</b><span>열차 도착 ${left}초 전 · ${left >= LINE.s1Time / 3 ? '여유 있게 안쪽까지!' : '무사히 탑승'}</span>`;
+  f.innerHTML = late ? `<b>탑승!</b><span>${idx + 1}번째 · 문 닫히기 직전 겨우 끼어 탔다… 🫠</span>` : `<b>탑승!</b><span>${idx + 1}번째로 탑승 · ${early ? '여유 있게 안쪽까지!' : '무사히 탑승'}</span>`;
   f.classList.add('show');
   setTimeout(() => {
     for (const fl of G.floats) fl.el.remove();
@@ -1737,6 +1815,7 @@ function stage1Done(late) {
 }
 
 function drawHUD1() {
+  if (G.phase !== 'gate') return drawHUDPlatform();
   const sec = Math.max(0, Math.ceil(G.timeLeft));
   $('station').textContent = G.phase === 'gate' ? `🚇 열차 도착까지 ${sec}초` : '승강장으로!';
   $('station').style.color = sec <= 10 ? '#ff8a8a' : '#fff';
@@ -1759,7 +1838,9 @@ function drawHUD1() {
   else if (nearGateVillain()) { label = `헛기침<br><small>${G.gateV.coughs}/3</small>`; cls = 'cough'; }
   else if (P.search && !P.search.auto) { label = `🎒 카드 찾기<br><small>${P.search.taps}/${P.search.need} 연타</small>`; cls = 'mash'; }
   else if (g && g.openFor === P) { label = '⬆<br>통과!'; cls = 'ready'; }
+  else if (g && !g.blockedBy && g.L.q.length && g.L.q[0] !== P && g.busy !== P && g.openFor !== P) { label = `🧍 줄 서세요<br><small>앞에 ${P.qLine === g.L ? playerQueueIdx() : g.L.q.length}명</small>`; }
   else if (g && !g.blockedBy && (!g.busy || g.busy === P)) { label = P.phone ? '📱<br>폰 찍기' : '💳<br>카드 찍기'; cls = 'ready'; }
+  else if (P.qLine && P.qLine.gate) { label = `🧍 ${playerQueueIdx() + 1}번째<br><small>대기 중</small>`; }
   setActBtn(label, cls);
 }
 
@@ -1768,7 +1849,7 @@ function setLine(L) {
   LINE = L;
   STATIONS = L.stations; TRANSFER = new Set(L.transfer); LAST = STATIONS.length - 1;
   // 빌런 일정: 첫 역에 하나, 나머지는 고르게 분산
-  const pool = ['jjeok', 'speaker', 'backspin', 'throw', 'boss'].sort(() => Math.random() - .5);
+  const pool = ['jjeok', 'speaker', 'backspin', 'instrument', 'food', 'throw', 'boss'].sort(() => Math.random() - .5);
   while (pool.length < L.villains) pool.push(pick(['throw', 'boss']));
   const stops = []; const n = Math.min(L.villains, LAST - 1);
   for (let k = 0; k < n; k++) stops.push(1 + Math.round(k * (LAST - 2) / Math.max(1, n - 1)));
@@ -1822,21 +1903,25 @@ function updateDisc(dt) {
   if (!P || P.seated || G.phase === 'end' || G.phase === 'boarding') return;
   const reach = pRadius() + NPC_R + .12;
   let touch = 0, near = null;
+  const touching = new Set();
+  const qMul = P.qLine ? .3 : 1;       // 줄 서 있을 땐 서로 덜 예민함
   for (const n of people) {
     if (n === P || n.sitting || n.state === 'leave') continue;
     const d = dist(P, n);
-    if (d < reach) { touch++; if (!near || d < dist(P, near)) near = n; }
+    if (d < reach) { touch++; touching.add(n); if (!near || d < dist(P, near)) near = n; annoy(n, 1.5 * LINE.disc * qMul * dt); }
   }
+  updateNpcDisc(dt, touching);
   P.touch = touch; P.touchNear = near;
-  let rate = touch ? Math.min(touch, 3) * 1.25 * LINE.disc * (P.phone ? .75 : 1) : -5;
+  P.worst = 0; for (const n of touching) P.worst = Math.max(P.worst, n.disc || 0);
+  let rate = touch ? Math.min(touch, 3) * 1.25 * LINE.disc * qMul * (P.phone ? .75 : 1) : -5;
   if (P.stuck) rate += 4;
   addDisc(rate * dt);
 }
-function fight() {
+function fight(by = null) {
   if (G.phase === 'end') return;
-  G.phase = 'end'; G.endStop = G.stage === 2 ? currentStop() : 0;
-  P.stuck = null; P.search = null;
-  const foe = P.touchNear || people.find(p => p.kind === 'npc' && !p.sitting);
+  G.phase = 'end'; G.endStop = G.stage === 2 ? currentStop() : 0; G.endLabel = '💥 싸움 발생';
+  P.stuck = null; P.search = null; stopVoice();
+  const foe = by || P.touchNear || people.find(p => p.kind === 'npc' && !p.sitting);
   if (foe) { foe.mood = 99; foe.rot = Math.atan2(P.x - foe.x, P.z - foe.z); }
   P.mood = 99;
   G.shake = 1.2; SFX.boom(); SFX.siren(6);
@@ -1848,7 +1933,7 @@ function fight() {
     ...stage1Rows(),
     ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
     ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
-  ], { emoji: '💥😡', title: '출근 실패', desc: '불쾌지수 폭발… 결국 싸움이 났다. 오늘은 지각이다.', rank: '🥊 지하철 파이터' }), 1900);
+  ], { emoji: '💥😡', title: '출근 실패', desc: by ? '옆 사람 불쾌지수가 먼저 터졌다… 너무 비볐다. 오늘은 지각이다.' : '불쾌지수 폭발… 결국 싸움이 났다. 오늘은 지각이다.', rank: '🥊 지하철 파이터' }), 1900);
 }
 
 // ═════════════════════════ 아이템 (STAGE 1 대합실) ═════════════════════════
@@ -2022,6 +2107,465 @@ function updateSuitcase(dt) {
   }
 }
 
+// ═════════════════════════ 안내방송 (음성 합성) ═════════════════════════
+let voiceOn = true;
+let koVoice = null;
+function pickVoice() {
+  if (!('speechSynthesis' in window)) return;
+  const vs = speechSynthesis.getVoices();
+  koVoice = vs.find(v => /ko/i.test(v.lang) && /female|여|Yuna|Sun|Heami/i.test(v.name)) || vs.find(v => /ko/i.test(v.lang)) || null;
+}
+if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text, { interrupt = false } = {}) {
+  if (!voiceOn || !('speechSynthesis' in window)) return;
+  try {
+    if (interrupt) speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR'; if (koVoice) u.voice = koVoice;
+    u.rate = 1.05; u.pitch = 1.1; u.volume = .9;
+    speechSynthesis.speak(u);
+  } catch (e) { }
+}
+function stopVoice() { try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) { } }
+// 실제 방송 형식에 맞춘 문구
+const josaRo = name => /[가-힣]$/.test(name) && ((name.charCodeAt(name.length - 1) - 0xAC00) % 28 === 0 || (name.charCodeAt(name.length - 1) - 0xAC00) % 28 === 8) ? '로' : '으로';
+function transferText(st) {
+  const t = LINE.xfer && LINE.xfer[st];
+  if (!t) return '';
+  return `${t}${josaRo(t)} 갈아타실 고객께서는`;
+}
+const doorSideOf = st => { let h = 0; for (const c of st) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 2; }; // 0=왼쪽 1=오른쪽
+function sayNext(st) {
+  const x = transferText(st);
+  const txt = `다음 역은 ${st}, ${st}역입니다.` + (x ? ` ${x} 다음 역에서 내리시기 바랍니다.` : '');
+  speak(txt); return txt;
+}
+function sayThis(st) {
+  const side = doorSideOf(st) ? '오른쪽' : '왼쪽';
+  const x = transferText(st);
+  const end = st === STATIONS[LAST] ? ' 이 역은 이 열차의 종착역입니다.' : '';
+  const txt = `이번 역은 ${st}, ${st}역입니다. 내리실 문은 ${side}입니다.` + (x ? ` ${x} 이번 역에서 내리시기 바랍니다.` : '') + end;
+  speak(txt); return txt;
+}
+
+// ═════════════════════════ 승객 불쾌지수 (상대방) ═════════════════════════
+const mannerFactor = () => clamp(1 - P.manner * .015, .5, 1.5);
+function annoy(n, v) {
+  if (!n || n.kind !== 'npc' || G.phase === 'end') return;
+  const before = n.disc || 0;
+  n.disc = clamp(before + v * mannerFactor(), 0, 100);
+  if (before < 60 && n.disc >= 60) float(pick(['아 좀 그만 밀어요', '거 좀 떨어지시죠', '하…']), { x: n.x, y: 2.2, z: n.z }, '#ffb3b3', 13, 1.4);
+  if (before < 85 && n.disc >= 85) float(pick(['한 번만 더 밀어봐요?!', '진짜 왜 이래요?!', '💢💢']), { x: n.x, y: 2.3, z: n.z }, '#ff8a8a', 14, 1.6);
+  if (n.disc >= 100) fight(n);
+}
+function updateNpcDisc(dt, touching) {
+  for (const n of people) {
+    if (n.kind !== 'npc' || !n.disc) continue;
+    if (!touching.has(n)) n.disc = Math.max(0, n.disc - 4 * dt);
+  }
+}
+
+// ═════════════════════════ STAGE 1-2: 승강장 줄서기 ═════════════════════════
+const PSD_Z = -3.0;
+const PL_DOORS = [-2.4, 0, 2.4];
+const PL_BOUNDS = { x0: -3.5, x1: 3.5, z0: -2.65, z1: 5.6 };
+const SLOT0 = -2.3, SLOT_GAP = .64;
+const DOOR_CAP = [0, 10, 9, 8, 7];          // 난이도별 문 하나당 탈 수 있는 인원
+const LINE_BASE = [0, 1, 2, 3, 3];          // 미리 서 있는 줄 길이
+let qlines = [];
+const platformGroup = new THREE.Group(); scene.add(platformGroup); platformGroup.visible = false;
+const psdPanels = [];
+let trainGroup, plBoardMesh, plHeadMesh;
+adopt(platformGroup, function buildPlatform() {
+  const fl = mesh(new THREE.PlaneGeometry(7.4, 9.2), new THREE.MeshStandardMaterial({ color: '#cfcfcf', map: floorTexture(), roughness: .9 }), 0, 0, 1.4);
+  fl.rotation.x = -Math.PI / 2; fl.castShadow = false;
+  mesh(box(7.4, .012, .14), M('#f2c200'), 0, .006, PSD_Z + .4, scene, false);
+  const wall = M('#e4e2dc');
+  mesh(box(.15, 3.2, 9.4), wall, -3.75, 1.6, 1.4); mesh(box(.15, 3.2, 9.4), wall, 3.75, 1.6, 1.4);
+  mesh(box(7.6, 3.2, .15), wall, 0, 1.6, 6.05);
+  for (const x of [-3.2, 3.2]) mesh(box(.45, 3.2, .45), M('#cfd4dd'), x, 1.6, 2.2);
+  // 스크린도어
+  const glass = new THREE.MeshStandardMaterial({ color: '#bfe3f5', transparent: true, opacity: .35, roughness: .1, metalness: .2 });
+  const frame = M('#8f9bb0', { metalness: .4 });
+  let x0 = -3.7;
+  for (const dx of [...PL_DOORS, 3.7]) {
+    const a = x0, b = dx === 3.7 ? 3.7 : dx - .6;
+    if (b > a) { mesh(box(b - a, 2.1, .06), glass, (a + b) / 2, 1.05, PSD_Z, scene, false); mesh(box(.06, 2.1, .1), frame, b, 1.05, PSD_Z, scene, false); }
+    x0 = dx + .6;
+    if (dx !== 3.7) for (const k of [-1, 1]) {
+      const p = mesh(box(.6, 2.0, .05), glass, dx + k * .3, 1.0, PSD_Z + .05, scene, false);
+      psdPanels.push({ m: p, base: dx + k * .3, dir: k });
+    }
+  }
+  plHeadMesh = mesh(box(7.5, .35, .12), lineMat, 0, 2.3, PSD_Z);
+  // 문 번호 + 줄서기 발자국
+  PL_DOORS.forEach((dx, i) => {
+    const t = new THREE.Mesh(new THREE.PlaneGeometry(.5, .25), new THREE.MeshBasicMaterial({ map: signTex([{ t: `${i + 2}-${i + 1}`, s: 40, c: '#fff', y: 32 }], 128, 64, '#2b3a55', 'DOORNO' + i) }));
+    t.position.set(dx, 2.3, PSD_Z + .07); scene.add(t);
+    for (const s of [-1, 1]) for (let k = 0; k < 9; k++) {
+      const m = mesh(new THREE.PlaneGeometry(.3, .16), new THREE.MeshBasicMaterial({ color: k < 1 ? '#ffd23f' : '#e8c64a', transparent: true, opacity: k < 1 ? .95 : .55 }), dx + s * .38, .008, SLOT0 + k * SLOT_GAP, scene, false);
+      m.rotation.x = -Math.PI / 2;
+    }
+    const arrow = new THREE.Mesh(new THREE.PlaneGeometry(.5, .5), new THREE.MeshBasicMaterial({ map: iconTex('⬆️'), transparent: true }));
+    arrow.rotation.x = -Math.PI / 2; arrow.position.set(dx, .01, PSD_Z + .55); scene.add(arrow);
+  });
+  // 안내판
+  plBoardMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.4, .45), new THREE.MeshBasicMaterial({ map: boardTex }));
+  plBoardMesh.position.set(0, 2.75, PSD_Z + .1); scene.add(plBoardMesh);
+  // 열차 (스크린도어 너머)
+  trainGroup = new THREE.Group(); scene.add(trainGroup);
+  mesh(box(24, 2.7, 2.6), M('#d9dde4', { metalness: .4, roughness: .35 }), 0, 1.45, 0, trainGroup);
+  mesh(box(24.02, .25, 2.62), lineMat, 0, 1.0, 0, trainGroup, false);
+  for (let x = -11; x <= 11; x += 1.6) mesh(box(.9, .6, 2.64), new THREE.MeshBasicMaterial({ color: '#1a2233' }), x, 1.9, 0, trainGroup, false);
+  trainGroup.position.set(-40, 0, PSD_Z - 1.5);
+});
+const trainDoors = [];
+for (const dx of PL_DOORS) for (const k of [-1, 1]) {
+  const m = mesh(box(.6, 2.0, .04), M('#c3c9d3', { metalness: .4 }), dx + k * .3, 1.2, 1.32, trainGroup, false);
+  trainDoors.push({ m, base: dx + k * .3, dir: k });
+}
+
+const slotPos = (L, i) => ({ x: L.x, z: (L.z0 ?? SLOT0) + i * (L.gap ?? SLOT_GAP) });
+function enterPlatform() {
+  G.phase = 'toPlatform';
+  const f = $('fade'); f.innerHTML = `<b>승강장</b><span>${STATIONS[0]} · ${STATIONS[LAST]} 방면 · 줄을 서세요!</span>`; f.classList.add('show');
+  setTimeout(() => {
+    if (G.phase !== 'toPlatform') return;
+    for (const p of [...people]) if (p !== P) p.remove();
+    if (G.suit) { scene.remove(G.suit.cs); G.suit = null; }
+    clearItems(); G.items = null;
+    lane2.material.opacity = 0; $('warn').classList.remove('show');
+    stationGroup.visible = false; platformGroup.visible = true;
+    trainGroup.position.x = -40; for (const d of psdPanels) d.m.position.x = d.base; for (const d of trainDoors) d.m.position.x = d.base;
+    P.x = rand(-.5, .5); P.z = 5.2; P.rot = Math.PI; P.parts.g.rotation.y = Math.PI; P.stuck = null; P.passing = null; P.search = null; P.qLine = null;
+    camPos.set(P.x, 9, P.z + 5); camLook.set(P.x, .4, P.z - 1);
+    // 줄 미리 채우기 (늦게 올수록 길다)
+    qlines = [];
+    PL_DOORS.forEach((dx, d) => { for (const s of [-1, 1]) qlines.push({ d, x: dx + s * .38, q: [] }); });
+    const base = LINE_BASE[LINE.diff] + Math.floor(G.t / 8);
+    for (const L of qlines) {
+      const n = Math.max(0, base + Math.floor(rand(-1, 2.5)));
+      for (let i = 0; i < n; i++) { const sp = slotPos(L, i); const p = new Person({ look: npcLook(), x: sp.x, z: sp.z, rot: Math.PI }); p.state = 'queue'; p.qLine = L; L.q.push(p); }
+    }
+    G.phase = 'platform'; G.plT = 0; G.plSpawnT = 1.5; G.cutter = null;
+    G.cap = DOOR_CAP[LINE.diff];
+    announce(`이번 열차는 ${STATIONS[LAST]}행 열차입니다. 노란 발자국 끝에 줄을 서세요!`, 3.5);
+    speak(`이번 열차는 ${STATIONS[LAST]}행 열차입니다.`, { interrupt: true });
+    setTimeout(() => f.classList.remove('show'), 200);
+  }, 700);
+}
+function shortestLine(exclude) {
+  let best = null; for (const L of qlines) { if (L === exclude) continue; if (!best || L.q.length + Math.random() * .9 < best.q.length) best = L; } return best;
+}
+function joinQueue(p, L, idx = L.q.length) {
+  L.q.splice(idx, 0, p); p.qLine = L;
+}
+function leaveQueue(p) { if (!p.qLine) return; const L = p.qLine; L.q = L.q.filter(x => x !== p); p.qLine = null; }
+function playerQueueIdx() { return P.qLine ? P.qLine.q.indexOf(P) : -1; }
+
+function updatePlatform(dt) {
+  G.plT += dt;
+  // 새 승객이 계단에서 내려와 줄 끝에 섬 (열차 오기 전까지)
+  if (G.phase === 'platform') {
+    G.plSpawnT -= dt;
+    if (G.plSpawnT <= 0) {
+      G.plSpawnT = rand(1.3, 2.4) * 16 / LINE.crowd;
+      const L = shortestLine();
+      const p = new Person({ look: npcLook(), x: rand(-2.5, 2.5), z: 5.6, rot: Math.PI, speed: 1.8 });
+      joinQueue(p, L); p.state = 'queue';
+    }
+  }
+  syncQueueNpcs(qlines);
+  playerQueue(qlines, dt, () => {
+    if (G.timeLeft > 14 && !G.warned.dep) { G.warned.dep = 1; G.timeLeft = 14; const t = `전 역에서 ${STATIONS[LAST]} 방면 열차가 출발하였습니다.`; announce(t, 3); speak(t, { interrupt: true }); }
+  });
+  if (G.phase === 'platform') checkCutting(qlines, dt);
+  updateCutter(dt);
+
+  // 열차 도착
+  if (G.phase === 'platform' && G.timeLeft <= 0) trainArrive();
+  if (G.phase === 'train') {
+    G.trT += dt;
+    trainGroup.position.x = lerp(-40, 0, 1 - Math.pow(1 - clamp(G.trT / 3.2, 0, 1), 3));
+    if (G.trT > 3.4 && !G.doorsOpen) {
+      G.doorsOpen = true; SFX.chime(); speak('스크린도어가 열립니다.');
+      // 내리는 사람
+      for (const dx of PL_DOORS) for (let k = 0; k < 2; k++) {
+        const p = new Person({ look: npcLook(), x: dx + rand(-.2, .2), z: PSD_Z - .6, rot: 0, speed: 2 });
+        p.goTo(dx + (k ? .9 : -.9), 1.0, 'leave', () => p.goTo(rand(-3, 3), 5.8, 'leave', () => p.remove()));
+      }
+    }
+    const open = G.doorsOpen ? clamp((G.trT - 3.4) * 2.5, 0, 1) : 0;
+    for (const d of psdPanels) d.m.position.x = d.base + d.dir * open * .58;
+    for (const d of trainDoors) d.m.position.x = d.base + d.dir * open * .58;
+    if (G.trT > 5.0) boardingTick(dt);
+  }
+}
+function trainArrive() {
+  G.phase = 'train'; G.trT = 0; G.doorsOpen = false; G.boardT = 0;
+  G.boardedPer = [0, 0, 0]; G.alt = [0, 0, 0];
+  SFX.whoosh(); tone(220, 0, 1.2, 'sawtooth', .03, 120);
+  const txt = `지금 ${STATIONS[LAST]} 방면으로 가는 열차가 들어오고 있습니다. 안전선 밖으로 한 걸음 물러서 주시기 바랍니다.`;
+  announce(txt, 4); speak(txt, { interrupt: true });
+}
+function boardingTick(dt) {
+  G.boardT -= dt;
+  if (G.boardT > 0 || G.closing) return;
+  G.boardT = .5;
+  let any = false;
+  PL_DOORS.forEach((dx, d) => {
+    if (G.boardedPer[d] >= G.cap) return;
+    const pair = qlines.filter(L => L.d === d && L.q.length);
+    if (!pair.length) return;
+    const L = pair[G.alt[d] % pair.length]; G.alt[d]++;
+    const p = L.q.shift(); p.qLine = null; any = true;
+    const idx = G.boardedPer[d]++;
+    if (p === P) return playerBoarded(d, idx);
+    p.speed = 2.2; p.goTo(dx, PSD_Z - .6, 'leave', () => p.remove());
+  });
+  const full = G.boardedPer.every((c, d) => c >= G.cap || !qlines.some(L => L.d === d && L.q.length));
+  if ((full || !any) && !P.boardedTrain) {
+    G.closing = true;
+    speak('출입문 닫습니다.', { interrupt: true }); announce('출입문 닫습니다. 다음 열차를 이용해 주시기 바랍니다.', 3);
+    for (const L of qlines) for (const p of L.q) if (p !== P) p.mood = 2;
+    setTimeout(() => missedTrain(), 1500);
+  }
+}
+function playerBoarded(d, idx) {
+  P.boardedTrain = true; leaveQueue(P); P.qDoorX = PL_DOORS[d]; P.rot = Math.PI;
+  float(`탑승! ${idx + 1}번째로 들어감`, { x: P.x, y: 2.3, z: P.z }, '#a8ffb0', 16, 1.6);
+  speak('출입문 닫습니다.');
+  setTimeout(() => stage1Done({ idx, cap: G.cap }), 900);
+}
+function missedTrain() {
+  if (G.phase === 'end' || P.boardedTrain) return;
+  G.phase = 'end'; G.endStop = 0;
+  SFX.fail(); G.shake = .4;
+  const idx = playerQueueIdx();
+  $('big').innerHTML = '⏰ 지각!'; $('big').classList.add('show');
+  setTimeout(() => showEnd(false, [
+    ['🚪', idx >= 0 ? `줄 ${idx + 1}번째 — 바로 앞에서 문이 닫혔다` : '열차를 놓쳤다', 0],
+    ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
+    ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
+  ], { emoji: '⏰😱', title: '지각!', desc: '눈앞에서 문이 닫혔다. 다음 열차를 타면 지각… 미션 실패.', rank: '🐢 다음 열차 대기자' }), 1500);
+}
+
+// 🟠 줄 새치기 빌런
+function nearCutter() { const C = G.cutter; return C && !C.done && C.inLine && dist(P, C.p) < 1.3; }
+function updateCutter(dt) {
+  if (LINE.diff < 2 && !G.forceCutter) return;
+  if (G.phase === 'platform' && G.plT > 3 && !G.warnedCut) { G.warnedCut = 1; showWarn('cutter', '⚠️ 줄 새치기 빌런 접근!'); SFX.siren(6); }
+  if (G.phase === 'platform' && G.plT > 5.5 && !G.cutter) {
+    $('warn').classList.remove('show');
+    const p = new Person({ kind: 'villain', vtype: 'cutter', look: { coat: '#6a4a2a', pants: '#222', hair: '#1b1b1b', shades: true }, x: rand(-2, 2), z: 5.6, rot: Math.PI, label: VILLAINS.cutter.name, labelColor: GRADE.orange.color, speed: 2.4 });
+    p.state = 'board';
+    G.cutter = { p, coughs: 0, coughT: 0, done: false, inLine: false };
+    showCutin('cutter', '빌런 출현!');
+  }
+  const C = G.cutter; if (!C || C.done) return;
+  const p = C.p;
+  if (!C.inLine) {
+    const L = P.qLine || shortestLine();
+    const at = P.qLine ? Math.max(0, playerQueueIdx()) : Math.min(1, L.q.length);
+    const sp = slotPos(L, at);
+    p.target = sp; p.onArrive = null;
+    if (Math.hypot(p.x - sp.x, p.z - sp.z) < .5) {
+      C.inLine = true; joinQueue(p, L, at); p.state = 'queue';
+      float('잠깐만 끼어들게요~ 😏', { x: p.x, y: 2.3, z: p.z }, '#ffb347', 15, 1.6);
+      if (P.qLine === L) { addDisc(10); float('앗… 내 앞에?!', { x: P.x, y: 2.3, z: P.z }, '#ff8a8a', 14); }
+      for (const q of L.q) if (q !== p && q.kind === 'npc') q.mood = 1.5;
+    }
+  } else if (C.coughs > 0) { C.coughT += dt; if (C.coughT > 2.5) { C.coughs = 0; C.coughT = 0; } }
+}
+function scoldCutter() {
+  const C = G.cutter;
+  C.coughs++; C.coughT = 0; SFX.cough();
+  float(['저기요…', '줄 서세요!', '뒤로 가세요!!'][Math.min(2, C.coughs - 1)], { x: P.x, y: 2.2, z: P.z }, '#ffd23f', 15 + C.coughs * 3);
+  if (C.coughs >= 3) {
+    C.done = true; P.counters++; calm(15); G.shake = .25;
+    const L = C.p.qLine; leaveQueue(C.p);
+    const T = L ? L : shortestLine(); joinQueue(C.p, T); C.p.state = 'queue';
+    float('…네 죄송합니다 😓 (맨 뒤로)', { x: C.p.x, y: 2.3, z: C.p.z }, '#fff', 14, 1.8);
+    float('새치기 참교육! +300', null, GRADE.orange.color, 20, 1.8);
+    for (const q of people) if (q.qLine && q.kind === 'npc') q.disc = Math.max(0, (q.disc || 0) - 20);
+  }
+}
+// 플레이어가 줄에서 앞사람을 비집고 지나가면 = 새치기
+function onSqueezePass(n) {
+  if (G.stage !== 1 || !P.qLine || n.qLine !== P.qLine) return;
+  const L = P.qLine, i = L.q.indexOf(P), j = L.q.indexOf(n);
+  if (j === i - 1) {
+    L.q[i] = n; L.q[j] = P;
+    P.manner -= 6; annoy(n, 35);
+    for (const q of L.q) if (q.kind === 'npc' && q !== n && Math.abs(L.q.indexOf(q) - j) <= 2) annoy(q, 12);
+    float('새치기?! 😠', { x: n.x, y: 2.3, z: n.z }, '#ff8a8a', 15);
+    float('(매너 -6)', { x: P.x, y: 2.4, z: P.z }, '#ff9a9a', 12, 1);
+  }
+}
+
+function drawHUDPlatform() {
+  const sec = Math.max(0, Math.ceil(G.timeLeft));
+  const idx = playerQueueIdx();
+  if (G.phase === 'platform') $('station').textContent = `🚇 열차 도착까지 ${sec}초`;
+  else if (G.phase === 'train') $('station').textContent = G.doorsOpen ? '🚪 탑승 중!' : '🚇 열차 진입 중!';
+  else $('station').textContent = '승강장';
+  $('station').style.color = sec <= 10 ? '#ff8a8a' : '#fff';
+  $('timebar').style.width = clamp(G.timeLeft / LINE.s1Time, 0, 1) * 100 + '%';
+  $('timebar').style.background = sec <= 10 ? '#ff5a5a' : LINE.color;
+  const qtxt = P.boardedTrain ? '탑승 완료!' : idx >= 0 ? `내 줄 순서 ${idx + 1}번째 · 문당 약 ${P.phone ? G.cap + '명 탑승 가능 📱' : '?명 탑승 (📱폰으로 확인)'}` : '노란 발자국 줄 끝에 서세요';
+  $('remain').textContent = `STAGE 1 · 승강장 · ${qtxt}`;
+  drawMap();
+  const pi = $('phoneInfo'), vi = $('vision');
+  if (P.phone && G.phase !== 'end') {
+    const lens = PL_DOORS.map((_, d) => qlines.filter(L => L.d === d).reduce((a, L) => a + L.q.filter(x => x !== P).length, 0));
+    pi.innerHTML = `📱 <b>혼잡도 앱</b><br>문당 탑승 가능 <b>${G.cap}명</b><br>${lens.map((n, d) => `${d + 2}-${d + 1}: ${n}명 ${n >= G.cap ? '❌' : '✅'}`).join('<br>')}`;
+    pi.style.display = 'block';
+    const sp = toScreen(P.x, .8, P.z); const R = Math.min(innerWidth, innerHeight) * .26;
+    vi.style.background = `radial-gradient(circle at ${sp.x}px ${sp.y}px, rgba(5,8,15,0) ${R}px, rgba(5,8,15,.9) ${R * 1.9}px)`;
+    vi.style.display = 'block';
+  } else { pi.style.display = 'none'; vi.style.display = 'none'; }
+  let label = '행동<br><small>Space</small>', cls = '';
+  if (G.phase === 'end' || P.boardedTrain) label = '—';
+  else if (P.stuck) { label = `🎒 빼기!<br><small>${P.stuck.taps}/${P.stuck.need} 연타</small>`; cls = 'mash'; }
+  else if (nearCutter()) { label = `줄 서세요!<br><small>${G.cutter.coughs}/3</small>`; cls = 'cough'; }
+  else if (idx >= 0) { label = `${idx + 1}번째<br><small>대기 중</small>`; }
+  setActBtn(label, cls);
+}
+
+// ═════════════════════════ 오라형 빌런: 악기 마스터 / 도시락 빌런 ═════════════════════════
+// 실존 인물·사건과 무관한 '흔한 민폐 유형'을 과장한 오리지널 캐릭터
+const AURA_DEF = {
+  instrument: { color: '#ffb000', r: 1.9, rate: 3.2, need: 4, look: { coat: '#7a3b2e', pants: '#2b2420', hair: '#cccccc', mustache: true }, notes: ['🎷 빠밤~', '🎶', '🎵 뿌우~', '♬ 띠리리'] },
+  food:       { color: '#7ac943', r: 1.7, rate: 2.8, need: 3, look: { coat: '#556b2f', pants: '#333', hair: '#3a2a1a' }, notes: ['🍱 쩝쩝', '💨 (진한 냄새)', '🧄 마늘향', '🍗 바삭'] },
+};
+function boardAura(type, V, gc) {
+  const D = AURA_DEF[type], d = pick(sideDoors());
+  const p = new Person({ kind: 'villain', vtype: type, look: D.look, x: d.x * .95, z: d.z, label: V.name, labelColor: gc, speed: 2.0 });
+  if (type === 'instrument') { const h = mesh(box(.08, .06, .38), M('#d4a017', { metalness: .7, roughness: .3 }), 0, -.3, .16, p.parts.arms[1]); h.rotation.x = .6; }
+  if (type === 'food') mesh(box(.28, .08, .2), M('#e8e2d0'), 0, -.36, .12, p.parts.arms[0]);
+  const sp = freeSpot(P.z) || { x: 0, z: P.z - 1 };
+  p.goTo(sp.x, sp.z, 'board', () => { p.state = 'stand'; });
+  const m = new THREE.Mesh(new THREE.CircleGeometry(D.r, 40), new THREE.MeshBasicMaterial({ color: D.color, transparent: true, opacity: 0, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.y = .019; scene.add(m);
+  G.auras.push({ type, p, m, D, count: 0, countT: 0, done: false, noteT: 0, beat: 0 });
+}
+function nearAura() { return (G.auras || []).find(a => !a.done && a.p.state === 'stand' && dist(P, a.p) < a.D.r + .2); }
+function updateAuras(dt) {
+  for (const a of G.auras || []) {
+    if (!people.includes(a.p)) { scene.remove(a.m); a.done = true; continue; }
+    if (a.done) { a.m.material.opacity = 0; continue; }
+    a.m.position.x = a.p.x; a.m.position.z = a.p.z;
+    a.beat = (a.beat + dt) % .7;                 // 악기 마스터 박자 (0.7초)
+    const onBeat = a.type === 'instrument' && a.beat < .16;
+    a.m.material.opacity = a.type === 'instrument' ? (onBeat ? .32 : .12) : .13 + .05 * Math.sin(G.clock * 5);
+    a.m.scale.setScalar(a.type === 'instrument' && onBeat ? 1.06 : 1);
+    a.noteT -= dt;
+    if (a.noteT <= 0) { a.noteT = a.type === 'instrument' ? .7 : 1.1; float(pick(a.D.notes), { x: a.p.x + rand(-.4, .4), y: 2.0, z: a.p.z }, a.D.color, 14, 1); }
+    if (dist(P, a.p) < a.D.r && a.p.state === 'stand') addDisc(a.D.rate * LINE.disc * (a.type === 'instrument' && P.ear ? .3 : 1) * dt);
+    if (a.count > 0) { a.countT += dt; if (a.countT > 3) { a.count = 0; a.countT = 0; } }
+  }
+}
+function actAura(a) {
+  if (a.type === 'instrument') {
+    // 박자에 맞춰 눌러야 카운트 (박자 표시: 노란 원이 진해질 때)
+    const ok = a.beat < .22 || a.beat > .6;
+    if (!ok) { float('박자 틀림! 🙉', { x: P.x, y: 2.2, z: P.z }, '#ffb3b3', 13, .8); tone(200, 0, .1, 'square', .04); return; }
+    a.count++; a.countT = 0; tone(660 + a.count * 110, 0, .12, 'triangle', .07);
+    float(['짝!', '짝짝!', '짝짝짝!', '🎉 앵콜!!'][Math.min(3, a.count - 1)], { x: P.x, y: 2.2, z: P.z }, '#ffd23f', 15 + a.count * 2);
+  } else {
+    a.count++; a.countT = 0; SFX.cough();
+    float(['(눈치)', '(코 막음)', '(강한 눈치)'][Math.min(2, a.count - 1)], { x: P.x, y: 2.2, z: P.z }, '#c8ffb0', 14 + a.count * 2);
+  }
+  if (a.count >= a.D.need) {
+    a.done = true; P.counters++; calm(18); G.shake = .25; a.m.material.opacity = 0;
+    for (const q of people) if (q.kind === 'npc' && dist(q, a.p) < 3) q.mood = 1.5;
+    if (a.type === 'instrument') {
+      float('…앵콜은 다음 역에서 할게요 🙇', { x: a.p.x, y: 2.3, z: a.p.z }, '#fff', 14, 1.8);
+      float('관객 박수로 공연 종료! +300', null, GRADE.yellow.color, 20, 1.8);
+    } else {
+      float('앗… 뚜껑 닫을게요 😳', { x: a.p.x, y: 2.3, z: a.p.z }, '#fff', 14, 1.8);
+      float('도시락 봉인! +300', null, GRADE.yellow.color, 20, 1.8);
+    }
+  }
+}
+
+// ═════════════════════════ 임산부 배려석 ═════════════════════════
+const PINK = [[0, 0], [1, SEATS - 1]];
+function isPink(s) { return PINK.some(([side, i]) => s.side === side && s.i === i); }
+function pregnantSeatFail(s) {
+  G.endStop = currentStop(); G.phase = 'end'; stopVoice(); G.endLabel = '🤰 출근 실패';
+  P.stuck = null; P.passing = null; P.seated = true;
+  P.sitOn(s); P.state = 'seated'; P.parts.g.rotation.y = P.rot;
+  $('cutin').classList.remove('show'); $('warn').classList.remove('show'); laneMesh.material.opacity = 0;
+  P.disc = 100; G.shake = 1.0; SFX.boom(); SFX.siren(6);
+  const lines = ['거기 임산부석인데요?!', '😠 저기요…', '양심 어디 갔어요', '배려석이잖아요!!', '아니 진짜…'];
+  people.filter(q => q.kind === 'npc' && dist(q, P) < 3.5).slice(0, 6).forEach((q, k) => {
+    q.mood = 99; q.disc = 100; q.rot = Math.atan2(P.x - q.x, P.z - q.z);
+    setTimeout(() => float(lines[k % lines.length], { x: q.x, y: 2.3, z: q.z }, '#ff8a8a', 14, 1.8), k * 220);
+  });
+  $('big').innerHTML = '🤰 임산부 배려석!'; $('big').classList.add('show');
+  setTimeout(() => showEnd(false, [
+    ...stage1Rows(),
+    ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
+    ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
+  ], { emoji: '🤰😡', title: '출근 실패', desc: '임산부 배려석에 앉았다가 주변 시선 폭발… 결국 싸움이 났다.', rank: '🙅 배려석 침입자' }), 2000);
+}
+
+// ═════════════════════════ 줄서기 공통 (개찰구 · 승강장) ═════════════════════════
+let gateLines = [];
+function syncQueueNpcs(lines) {
+  for (const L of lines) L.q.forEach((p, i) => {
+    if (p === P) return;
+    const sp = slotPos(L, i);
+    if (Math.hypot(p.x - sp.x, p.z - sp.z) > .04 && p.stun <= 0) { p.target = sp; p.onArrive = () => { p.rot = Math.PI; }; p.state = 'queue'; p.speed = Math.max(p.speed, 1.4); }
+  });
+}
+function playerQueue(lines, dt, onJoin) {
+  const inp = readInput();
+  if (!P.qLine) {
+    if (P.boardedTrain) return;
+    for (const L of lines) {
+      if (L.gate && (L.gate.blockedBy || L.gate.openFor === P)) continue;
+      const tail = slotPos(L, L.q.length);
+      if (Math.hypot(P.x - tail.x, P.z - tail.z) < .5) {
+        joinQueue(P, L); SFX.pop();
+        if (onJoin) onJoin(L);
+        float(L.gate ? `줄 섰다! ${L.q.length}번째` : `줄 섰다! ${L.q.length}번째 (${L.d + 2}-${L.d + 1} 문)`, { x: P.x, y: 2.3, z: P.z }, '#ffe066', 14, 1.6);
+        break;
+      }
+    }
+  } else if (lines.includes(P.qLine)) {
+    const sp = slotPos(P.qLine, playerQueueIdx());
+    const d = Math.hypot(P.x - sp.x, P.z - sp.z);
+    if (d > .9 && inp.m > .15) { leaveQueue(P); float('줄에서 빠졌다…', { x: P.x, y: 2.2, z: P.z }, '#cfd6ff', 13); }
+    else if (inp.m < .15 && d > .05 && P.stun <= 0 && !P.stuck) {
+      const k = Math.min(1, 2.2 * dt / d); P.x += (sp.x - P.x) * k; P.z += (sp.z - P.z) * k; P.rot = Math.PI; P.moving = .6;
+    }
+  }
+}
+// 줄 안 서고 앞이나 중간에 서 있으면 = 새치기 → 주변 불쾌지수 상승
+function checkCutting(lines, dt) {
+  if (G.phase === 'end' || P.boardedTrain) return;
+  P.cutWarnT = Math.max(0, (P.cutWarnT || 0) - dt);
+  let cut = false;
+  for (const L of lines) {
+    if (!L.q.length || P.qLine === L) continue;
+    if (L.gate && (L.gate.busy === P || L.gate.openFor === P)) continue;
+    let hit = -1;
+    for (let k = -1; k < L.q.length; k++) { const sp = slotPos(L, k); if (Math.hypot(P.x - sp.x, P.z - sp.z) < .5) { hit = Math.max(0, k); break; } }
+    if (hit < 0) continue;
+    cut = true;
+    if ((P.cutHold || 0) < .6) continue;   // 지나가는 건 봐줌, 멈춰 서면 새치기
+    for (let k = Math.max(0, hit - 1); k <= Math.min(L.q.length - 1, hit + 1); k++) { const n = L.q[k]; if (n !== P) annoy(n, 14 * dt); }
+    if (P.cutWarnT <= 0) {
+      const n = L.q[Math.min(hit, L.q.length - 1)];
+      if (n && n !== P) float(pick(['줄 서세요!', '저기요, 뒤로 가세요', '새치기하시는 거예요?']), { x: n.x, y: 2.3, z: n.z }, '#ff9a9a', 14, 1.3);
+      P.cutWarnT = 1.6;
+    }
+  }
+  P.cutHold = cut ? (P.cutHold || 0) + dt : 0;
+}
+
 // ═════════════════════════ 루프 ═════════════════════════
 let last = performance.now();
 function loop(now) {
@@ -2044,6 +2588,7 @@ function start() {
 $('startBtn').addEventListener('click', showLineScreen);
 $('againBtn').addEventListener('click', start);
 $('lineBtn').addEventListener('click', showLineScreen);
+$('voiceBtn').addEventListener('click', e => { e.stopPropagation(); voiceOn = !voiceOn; $('voiceBtn').classList.toggle('off', !voiceOn); $('voiceBtn').textContent = voiceOn ? '🔊 방송' : '🔇 방송'; if (!voiceOn) stopVoice(); });
 if (matchMedia('(pointer: fine)').matches) $('keyhint').style.display = 'block';
 if (!('ontouchstart' in window) && matchMedia('(pointer: fine)').matches) $('joyBase').style.display = 'none';
 addEventListener('touchstart', () => { $('joyBase').style.display = ''; $('keyhint').style.display = 'none'; }, { once: true, passive: true });
@@ -2055,7 +2600,7 @@ LINE = LINES[1]; newStage1(); LINE = null;
 $('loading').remove();
 requestAnimationFrame(loop);
 window.__game = { get G() { return G; }, get P() { return P; }, get seats() { return seats; }, get people() { return people; }, start,
-  get gates() { return gates; }, LINES, startLine, setSchedule(o) { SCHEDULE = o; },
+  get gates() { return gates; }, get qlines() { return qlines; }, LINES, startLine, stage2(c = null) { newGame(c); G.started = true; }, setSchedule(o) { SCHEDULE = o; },
   step(sec) { for (let t = 0; t < sec; t += 1 / 30) { if (G.stage === 1) { updateStage1(1 / 30); updateRing(); } else { update(1 / 30); updateSeatsVisual(); } updateCamera(1 / 30); drawHUD(); } } };
 </script>
 </body>
