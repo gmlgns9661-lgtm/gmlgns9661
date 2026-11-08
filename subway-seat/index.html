@@ -23,7 +23,7 @@
   .vbtn { pointer-events: auto; border: 0; border-radius: 999px; padding: 2px 8px; margin-right: 6px; font: 800 11px inherit; font-family: inherit; background: #2f374a; color: #fff; cursor: pointer; }
   .vbtn.off { opacity: .5; }
   #manner { color: #a8ffb0; }
-  #map { display: block; width: 100%; height: 34px; margin-top: 2px; }
+  #map { display: block; width: 100%; height: 60px; margin-top: 2px; }
   #station { text-align: center; font-size: 19px; font-weight: 900; margin-top: 2px; }
   .bar { height: 5px; background: #2f374a; border-radius: 3px; margin: 5px auto 0; max-width: 240px; overflow: hidden; }
   .bar i { display: block; height: 100%; width: 100%; background: #33d17a; }
@@ -72,11 +72,11 @@
   .rtab { border: 0; border-radius: 999px; padding: 6px 10px; background: #2f374a; color: #fff; font: 800 12px inherit; font-family: inherit; cursor: pointer; border-bottom: 3px solid transparent; }
   .rtab.on { background: var(--lc); }
   .go2 { background: linear-gradient(180deg, #4a7bd6, #2e5bb0); box-shadow: 0 5px 0 #1d3e7a; margin-left: 8px; }
-  #phoneInfo { position: absolute; left: 10px; top: 152px; padding: 7px 10px; border-radius: 10px; background: rgba(20,26,40,.92); border: 1.5px solid #7ee0ff; font-size: 12px; line-height: 1.5; display: none; }
+  #phoneInfo { position: absolute; left: 10px; top: 178px; padding: 7px 10px; border-radius: 10px; background: rgba(20,26,40,.92); border: 1.5px solid #7ee0ff; font-size: 12px; line-height: 1.5; display: none; }
   #phoneInfo b { color: #7ee0ff; }
 
   /* 경보 */
-  #warn { position: absolute; left: 0; right: 0; top: 142px; height: 52px; display: none; align-items: center; gap: 10px; padding: 0 12px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px #000; }
+  #warn { position: absolute; left: 0; right: 0; top: 168px; height: 52px; display: none; align-items: center; gap: 10px; padding: 0 12px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px #000; }
   #warn.show { display: flex; }
   #warn .sil { width: 36px; height: 36px; border-radius: 50%; background: #000; display: grid; place-items: center; font-size: 20px; flex: none; }
   #warn small { display: block; font-size: 12px; font-weight: 800; }
@@ -1441,7 +1441,7 @@ function updateCamera(dt) {
 function drawMap() {
   const c = $('map'), x = c.getContext('2d'), w = c.width, h = c.height, s = 2;
   x.clearRect(0, 0, w, h);
-  const x0 = 14 * s, x1 = w - 14 * s, ly = h * .45;
+  const x0 = 16 * s, x1 = w - 16 * s, ly = 16 * s;
   x.strokeStyle = LINE.color; x.lineWidth = 4 * s; x.beginPath(); x.moveTo(x0, ly); x.lineTo(x1, ly); x.stroke();
   const cur = currentStop();
   for (let i = 0; i <= LAST; i++) {
@@ -1451,7 +1451,14 @@ function drawMap() {
     if (SCHEDULE[i]) { x.font = `${9 * s}px ${EMOJI_FONT}`; x.textAlign = 'center'; x.fillText('🚨', px, ly - 9 * s); }
   }
   let pos = cur; if (G.phase === 'run') pos = cur + clamp(G.t / G.runDur, 0, 1);
-  x.font = `${12 * s}px ${EMOJI_FONT}`; x.textAlign = 'center'; x.fillText('🚃', lerp(x0, x1, pos / LAST), ly + 15 * s);
+  // 현재 열차 위치: 노선 위 큰 열차 + 배지
+  const tx = clamp(lerp(x0, x1, pos / LAST), 21 * s, w - 21 * s);
+  x.fillStyle = 'rgba(255,255,255,.95)';
+  x.beginPath(); x.moveTo(tx - 5 * s, ly + 8 * s); x.lineTo(tx + 5 * s, ly + 8 * s); x.lineTo(tx, ly + 3 * s); x.fill();   // 노선을 가리키는 꼭지
+  rrect(x, tx - 20 * s, ly + 8 * s, 40 * s, 34 * s, 10 * s); x.fill();
+  x.lineWidth = 2.5 * s; x.strokeStyle = LINE.color; x.stroke();
+  x.font = `${28 * s}px ${EMOJI_FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('🚃', tx, ly + 26 * s);
+  x.textBaseline = 'alphabetic';
 }
 function drawHUD() {
   if (G.stage === 1) drawHUD1(); else drawHUD2();
@@ -1498,6 +1505,10 @@ function setActBtn(label, cls) {
   b.className = 'b ' + cls;
 }
 function drawCommonHUD() {
+  // 경보 띠·폰 정보창은 HUD 높이에 맞춰 바로 아래에
+  const hh = $('hud').offsetHeight;
+  $('warn').style.top = hh + 'px';
+  $('phoneInfo').style.top = (hh + 8 + ($('warn').classList.contains('show') ? 56 : 0)) + 'px';
   const d = Math.round(P.disc || 0);
   $('discBar').style.width = d + '%';
   $('discNum').textContent = d;
