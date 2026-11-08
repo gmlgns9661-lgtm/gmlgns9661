@@ -13,6 +13,7 @@
     font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", sans-serif;
   }
   #gl { position: fixed; inset: 0; display: block; }
+  input { -webkit-user-select: text; user-select: text; touch-action: auto; }
   #ui { position: fixed; inset: 0; pointer-events: none; }
 
   /* 상단 HUD */
@@ -45,6 +46,20 @@
   .ltags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
   .ltags span { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #2f374a; color: #d8dbe6; }
   .ltags span:first-child { background: var(--lc); color: #fff; font-weight: 900; }
+  .daily { width: 100%; max-width: 400px; background: #1e2433; border-radius: 12px; padding: 10px 12px; margin: 6px 0 4px; text-align: left; }
+  .drow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: space-between; }
+  .daily input#nickInput, .nickrow input { flex: 1; min-width: 0; max-width: 170px; padding: 7px 10px; border-radius: 8px; border: 1px solid #3a4256; background: #141822; color: #fff; font: inherit; font-size: 14px; }
+  .tog { font-size: 12.5px; color: #d8dbe6; display: flex; align-items: center; gap: 4px; }
+  .rbtn { border: 0; border-radius: 999px; padding: 6px 12px; background: #ffd166; color: #3a2a00; font: 900 13px inherit; font-family: inherit; cursor: pointer; }
+  .ltop { font-size: 11.5px; color: #ffd166; margin-top: 6px; min-height: 1em; }
+  #endBoard { width: 100%; max-width: 400px; margin-top: 6px; }
+  .board { margin-top: 4px; }
+  .board tr.me td { color: #ffd166; font-weight: 900; }
+  .nickrow { display: flex; gap: 8px; justify-content: center; align-items: center; }
+  .nickrow .go { margin-top: 0; padding: 8px 16px; font-size: 14px; }
+  .rtabs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 4px 0 8px; }
+  .rtab { border: 0; border-radius: 999px; padding: 6px 10px; background: #2f374a; color: #fff; font: 800 12px inherit; font-family: inherit; cursor: pointer; border-bottom: 3px solid transparent; }
+  .rtab.on { background: var(--lc); }
   .go2 { background: linear-gradient(180deg, #4a7bd6, #2e5bb0); box-shadow: 0 5px 0 #1d3e7a; margin-left: 8px; }
   #phoneInfo { position: absolute; left: 10px; top: 152px; padding: 7px 10px; border-radius: 10px; background: rgba(20,26,40,.92); border: 1.5px solid #7ee0ff; font-size: 12px; line-height: 1.5; display: none; }
   #phoneInfo b { color: #7ee0ff; }
@@ -211,13 +226,29 @@
   <div class="score" id="endScore">0</div>
   <div class="rank" id="endRank"></div>
   <table id="endTable"></table>
+  <div id="endBoard"></div>
   <div><button class="go" id="againBtn">같은 노선 다시 ↻</button><button class="go go2" id="lineBtn">노선 바꾸기</button></div>
 </div>
 <div class="overlay" id="lineScreen">
   <h1>🚇 오늘의 출근 노선</h1>
-  <p class="sub">난이도 = 실제 출근길 혼잡 구간. 붐빌수록 승객·빌런이 많고 불쾌지수가 빨리 차요.</p>
+  <div class="daily">
+    <div class="drow"><b>📅 <span id="dayLabel"></span> 오늘의 출근길</b><span id="streakLabel" class="sub"></span></div>
+    <p class="sub">오늘은 모두 <b>같은 승객·빌런 배치</b>로 출발해요. 노선별 최고 점수로 랭킹 경쟁!</p>
+    <div class="drow">
+      <label for="nickInput" class="sub">닉네임</label><input id="nickInput" maxlength="12" placeholder="랭킹에 표시될 이름" autocomplete="off">
+      <label class="tog"><input type="checkbox" id="dailyToggle" checked> 랭킹 도전</label>
+      <button class="rbtn" id="rankBtn">🏆 랭킹</button>
+    </div>
+    <p class="sub" id="rankNote"></p>
+  </div>
   <div id="lineCards" style="width:100%"></div>
-  <p class="sub">PC: 숫자키 1~4로 바로 선택</p>
+  <p class="sub">PC: 숫자키 1~4로 바로 선택 · 랭킹 도전을 끄면 랜덤 배치 연습 모드</p>
+</div>
+<div class="overlay" id="rankScreen" style="z-index:12">
+  <h1>🏆 오늘의 출근 랭킹</h1>
+  <div id="rankTabs" class="rtabs"></div>
+  <div id="rankBody" style="width:100%;max-width:420px"></div>
+  <button class="go" id="rankClose">닫기</button>
 </div>
 <div id="fade"></div>
 <div id="loading">객차 준비 중… 🚇</div>
@@ -286,8 +317,9 @@ const GRADE = {
 let SCHEDULE = { 1: 'jjeok', 2: 'throw', 4: 'boss', 6: 'throw', 7: 'boss' };
 
 // ═════════════════════════ 유틸 ═════════════════════════
-const rand = (a, b) => a + Math.random() * (b - a);
-const pick = a => a[Math.floor(Math.random() * a.length)];
+let rnd = () => Math.random();          // 게임 전용 난수 (오늘의 출근길에선 시드 고정)
+const rand = (a, b) => a + rnd() * (b - a);
+const pick = a => a[Math.floor(rnd() * a.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -362,7 +394,7 @@ const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 function floorTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
   x.fillStyle = '#cfc6b2'; x.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 400; i++) { x.fillStyle = `rgba(0,0,0,${Math.random() * .05})`; x.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); }
+  for (let i = 0; i < 400; i++) { x.fillStyle = `rgba(0,0,0,${rnd() * .05})`; x.fillRect(rnd() * 256, rnd() * 256, 2, 2); }
   x.strokeStyle = 'rgba(0,0,0,.08)'; x.lineWidth = 2;
   for (let i = 0; i <= 256; i += 64) { x.beginPath(); x.moveTo(0, i); x.lineTo(256, i); x.stroke(); }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 6); t.colorSpace = THREE.SRGBColorSpace; return t;
@@ -527,7 +559,7 @@ function buildPerson(look) {
 let people = [];
 class Person {
   constructor(o) {
-    Object.assign(this, { kind: 'npc', x: 0, z: 0, rot: 0, state: 'stand', stop: BEYOND, stun: 0, mood: 0, walkT: Math.random() * 10, moving: 0, speed: 1.7, seat: null, target: null, sig: null, sigAt: null, sigShown: false, sitting: false, spread: false }, o);
+    Object.assign(this, { kind: 'npc', x: 0, z: 0, rot: 0, state: 'stand', stop: BEYOND, stun: 0, mood: 0, walkT: rnd() * 10, moving: 0, speed: 1.7, seat: null, target: null, sig: null, sigAt: null, sigShown: false, sitting: false, spread: false }, o);
     this.parts = buildPerson(this.look);
     this.parts.g.traverse(m => { if (m.isMesh) m.castShadow = this.kind !== 'npc' || m === this.parts.body; });
     scene.add(this.parts.g);
@@ -605,13 +637,13 @@ class Person {
   }
 }
 function npcLook() {
-  return { coat: pick(COATS), pants: pick(PANTS), hair: pick(HAIRS), longHair: Math.random() < .35, curly: Math.random() < .08 };
+  return { coat: pick(COATS), pants: pick(PANTS), hair: pick(HAIRS), longHair: rnd() < .35, curly: rnd() < .08 };
 }
 function genStop(from) {
   const opts = [], w = [];
   for (let i = from; i <= LAST; i++) { opts.push(i); w.push(TRANSFER.has(STATIONS[i]) ? 3 : 1); }
   opts.push(BEYOND); w.push(4);
-  let s = w.reduce((a, b) => a + b, 0) * Math.random();
+  let s = w.reduce((a, b) => a + b, 0) * rnd();
   for (let i = 0; i < opts.length; i++) { s -= w[i]; if (s <= 0) return opts[i]; }
   return BEYOND;
 }
@@ -682,8 +714,8 @@ function assignSignals() {
   for (const o of seatedNpcs()) {
     o.sig = null; o.sigAt = null; o.sigShown = false; o.setSignal(null);
     if (o.stop === G.next) { o.sig = pick(TRUE_SIG); o.sigAt = rand(2, G.runDur - 1.6); }
-    else if (o.stop === G.next + 1 && Math.random() < .35) { o.sig = FAKE_SIG[3]; o.sigAt = rand(1, G.runDur - 1); }
-    else if (Math.random() < .2) { o.sig = pick(FAKE_SIG); o.sigAt = rand(.8, G.runDur - 1); }
+    else if (o.stop === G.next + 1 && rnd() < .35) { o.sig = FAKE_SIG[3]; o.sigAt = rand(1, G.runDur - 1); }
+    else if (rnd() < .2) { o.sig = pick(FAKE_SIG); o.sigAt = rand(.8, G.runDur - 1); }
   }
 }
 
@@ -736,7 +768,7 @@ function refill() {
   const target = LINE.crowd;
   let n = people.filter(p => p.kind === 'npc' && !p.sitting && p.state !== 'leave').length;
   while (n < target) {
-    const sp = freeSpot(Math.random() < .4 ? P.z : null) || freeSpot(); if (!sp) break;
+    const sp = freeSpot(rnd() < .4 ? P.z : null) || freeSpot(); if (!sp) break;
     const d = pick(sideDoors());
     const p = new Person({ look: npcLook(), x: d.x * .95, z: d.z, stop: genStop(G.next + 1) });
     p.goTo(sp.x, sp.z, 'board', () => { p.state = 'stand'; });
@@ -933,6 +965,7 @@ function updateClaims() {
 // ═════════════════════════ 입력 ═════════════════════════
 const keys = new Set();
 addEventListener('keydown', e => {
+  if (e.target && e.target.tagName === 'INPUT') return;   // 닉네임 입력 중
   const k = e.key.toLowerCase();
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   if (!keys.has(k)) {
@@ -1107,7 +1140,7 @@ function updatePlayer(dt) {
     P.pushT += dt;
     if (P.pushT >= squeezeDur()) {
       P.pushT = 0; P.pushTarget = null;
-      if (P.bag === 'back' && Math.random() < .4) {
+      if (P.bag === 'back' && rnd() < .4) {
         P.stuck = { who: pushing, taps: 0, need: 6, t: 0, dx, dz };
         pushing.mood = 2.5; P.manner -= 4; G.shake = .2; SFX.stuck(); addDisc(8); annoy(pushing, 25);
         float('🎒 가방 걸림!! 연타!', { x: P.x, y: 2.1, z: P.z }, '#ff6b6b', 18, 1.6);
@@ -1207,6 +1240,8 @@ function showEnd(win, parts, opt = {}) {
   $('endRank').textContent = opt.rank || rank;
   $('endTable').innerHTML = parts.map(p => `<tr><td>${p[0]}</td><td>${p[1]}</td><td style="text-align:right">${p[2] >= 0 ? '+' : ''}${p[2]}</td></tr>`).join('');
   $('endScreen').classList.add('show');
+  $('endBoard').innerHTML = '';
+  submitRun(total, inferKind(win, opt));
 }
 
 // ═════════════════════════ 업데이트 ═════════════════════════
@@ -1517,7 +1552,7 @@ function chooseGate() {
   let best = null, bc = 1e9;
   for (const g of gates) {
     if (g.blockedBy) continue;
-    const c = g.L.q.length + (g.busy ? 1 : 0) + Math.random() * .8;
+    const c = g.L.q.length + (g.busy ? 1 : 0) + rnd() * .8;
     if (c < bc) { bc = c; best = g; }
   }
   return best || gates[2];
@@ -1548,7 +1583,7 @@ function updateGates(dt) {
         b.tapT -= dt;
         if (b.tapT <= 0) {
           g.npcOpen = 1.3; b.state = 'pass';
-          if (Math.random() < .35) float('삑', { x: g.gx + .3, y: 1.4, z: GATE_Z + .4 }, '#ffd23f', 12, .7);
+          if (rnd() < .35) float('삑', { x: g.gx + .3, y: 1.4, z: GATE_Z + .4 }, '#ffd23f', 12, .7);
           b.speed = 1.8;
           b.goTo(g.gx, GATE_Z - 1.1, 'pass', () => { b.goTo(rand(-2.6, 2.6), -7.6, 'leave', () => b.remove()); });
         }
@@ -1637,7 +1672,7 @@ function action1() {
     return;
   }
   // 찍기
-  if (!P.retried && Math.random() < .15) {
+  if (!P.retried && rnd() < .15) {
     P.retried = true; tone(300, 0, .25, 'square', .06);
     float('카드를 한 장만 대주세요', { x: g.gx, y: 1.8, z: GATE_Z + .4 }, '#ff9a9a', 14, 1.4);
     return;
@@ -1849,7 +1884,7 @@ function setLine(L) {
   LINE = L;
   STATIONS = L.stations; TRANSFER = new Set(L.transfer); LAST = STATIONS.length - 1;
   // 빌런 일정: 첫 역에 하나, 나머지는 고르게 분산
-  const pool = ['jjeok', 'speaker', 'backspin', 'instrument', 'food', 'throw', 'boss'].sort(() => Math.random() - .5);
+  const pool = ['jjeok', 'speaker', 'backspin', 'instrument', 'food', 'throw', 'boss'].sort(() => rnd() - .5);
   while (pool.length < L.villains) pool.push(pick(['throw', 'boss']));
   const stops = []; const n = Math.min(L.villains, LAST - 1);
   for (let k = 0; k < n; k++) stops.push(1 + Math.round(k * (LAST - 2) / Math.max(1, n - 1)));
@@ -1863,6 +1898,7 @@ function setLine(L) {
 }
 function showLineScreen() {
   audio();
+  renderLineTops();
   $('startScreen').classList.remove('show'); $('endScreen').classList.remove('show');
   $('lineScreen').classList.add('show');
 }
@@ -1872,6 +1908,7 @@ function buildLineCards() {
       <div class="lhead"><span class="lbadge">${L.badge}</span><b>${L.name}</b><span class="lstars">${L.stars}</span></div>
       <div class="lroute">${L.stations[0]} → ${L.stations[L.stations.length - 1]} · ${L.stations.length - 1}개 역</div>
       <div class="ldesc">${L.desc}</div>
+      <div class="ltop" data-line="${L.id}"></div>
       <div class="ltags"><span>${L.label}</span><span>승객 ${L.crowd}명+</span><span>개찰구 ${L.s1Time}초</span><span>빌런 ${L.villains}+</span></div>
     </button>`).join('');
   for (const b of document.querySelectorAll('.lcard')) b.addEventListener('click', () => startLine(LINES[+b.dataset.i]));
@@ -1944,8 +1981,8 @@ const ITEMS = {
 };
 function spawnItems() {
   G.items = [];
-  const spots = [[-2.6, 1.6], [2.7, 1.8], [-1.0, 4.4], [1.2, 4.9], [2.8, 4.2], [-2.8, 5.2]].sort(() => Math.random() - .5);
-  const kinds = ['coffee', Math.random() < .7 ? 'ear' : 'candy', 'candy'];
+  const spots = [[-2.6, 1.6], [2.7, 1.8], [-1.0, 4.4], [1.2, 4.9], [2.8, 4.2], [-2.8, 5.2]].sort(() => rnd() - .5);
+  const kinds = ['coffee', rnd() < .7 ? 'ear' : 'candy', 'candy'];
   kinds.forEach((k, i) => {
     const [x, z] = spots[i];
     const sp = makeSprite(iconTex(ITEMS[k].e), .55, .55); sp.position.set(x, .7, z); scene.add(sp);
@@ -2255,7 +2292,7 @@ function enterPlatform() {
   }, 700);
 }
 function shortestLine(exclude) {
-  let best = null; for (const L of qlines) { if (L === exclude) continue; if (!best || L.q.length + Math.random() * .9 < best.q.length) best = L; } return best;
+  let best = null; for (const L of qlines) { if (L === exclude) continue; if (!best || L.q.length + rnd() * .9 < best.q.length) best = L; } return best;
 }
 function joinQueue(p, L, idx = L.q.length) {
   L.q.splice(idx, 0, p); p.qLine = L;
@@ -2566,6 +2603,172 @@ function checkCutting(lines, dt) {
   P.cutHold = cut ? (P.cutHold || 0) + dt : 0;
 }
 
+// ═════════════════════════ 오늘의 출근길 + 랭킹 ═════════════════════════
+// 하루(한국 시간) × 노선마다 같은 시드 → 모두 같은 배치로 시작.
+// 기록은 공유 저장소 runs/<내 id> 문서 하나에 (닉네임, 날짜·노선별 최고 점수, 누적 기록).
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+const kstDay = (offset = 0) => new Date(Date.now() + 9 * 3600e3 + offset * 86400e3).toISOString().slice(0, 10);
+const RESULT = { seat: '🪑 착석', stand: '🧍 서서 도착', late: '⏰ 지각', fight: '💥 싸움', pink: '🤰 배려석' };
+const RK = { db: null, uid: null, runs: new Map(), mine: null, ready: false, state: 'loading', daily: true };
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+RK.daily = lsGet('ss.daily', true);
+const cleanNick = s => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 12);
+function myNick() { return cleanNick($('nickInput').value) || cleanNick(RK.mine && RK.mine.nick) || cleanNick(lsGet('ss.nick', '')); }
+const boardKey = (L, day = kstDay()) => `${day}_${L.id}`;
+
+function seedRun() {
+  rnd = RK.daily ? mulberry32(hashStr(boardKey(LINE || LINES[1]))) : (() => Math.random());
+}
+function boardFor(L, day = kstDay()) {
+  const key = boardKey(L, day), out = [];
+  for (const [id, d] of RK.runs) { const b = d.best && d.best[key]; if (b && typeof b.score === 'number') out.push({ id, nick: cleanNick(d.nick) || '익명 출근러', score: b.score, kind: b.kind }); }
+  out.sort((a, b) => b.score - a.score);
+  return out;
+}
+function myStats() { return (RK.mine && RK.mine.stats) || lsGet('ss.stats', {}); }
+
+async function initRanking() {
+  $('nickInput').value = lsGet('ss.nick', '');
+  $('dayLabel').textContent = kstDay();
+  $('dailyToggle').checked = RK.daily;
+  renderLineTops();
+  const C = window.claude;
+  if (!C || !C.use) { RK.state = 'offline'; renderLineTops(); return; }
+  try {
+    const [db, user] = await Promise.all([C.use('db'), C.use('user')]);
+    RK.uid = user ? await user.id() : null;
+    if (!db) { RK.state = 'offline'; renderLineTops(); return; }
+    RK.db = db;
+    const timer = setTimeout(() => { if (!RK.ready) { RK.state = 'slow'; renderLineTops(); } }, 10000);
+    db.collection('runs').onSnapshot(snap => {
+      RK.runs.clear();
+      for (const d of snap.docs) if (d.exists) RK.runs.set(d.id, d.data());
+      RK.mine = RK.uid ? RK.runs.get(RK.uid) || null : null;
+      if (RK.mine && !$('nickInput').value) $('nickInput').value = cleanNick(RK.mine.nick);
+      if (!snap.metadata.fromCache) { RK.ready = true; RK.state = 'live'; clearTimeout(timer); }
+      renderLineTops(); if ($('rankScreen').classList.contains('show')) renderRankScreen();
+    }, () => { clearTimeout(timer); RK.state = 'error'; renderLineTops(); });
+  } catch (e) { RK.state = 'offline'; renderLineTops(); }
+}
+
+function renderLineTops() {
+  const st = myStats();
+  $('streakLabel').textContent = st.streak ? `🔥 연속 출근 ${st.streak}일 · 착석 ${st.wins || 0}회 / ${st.plays || 0}판` : '첫 출근을 기록해 보세요';
+  const note = { loading: '랭킹 불러오는 중…', slow: '랭킹 서버 응답이 늦어요. 잠시 후 다시 열어 주세요.', offline: '이 화면에선 랭킹을 쓸 수 없어요 (공유 링크에서 열면 랭킹 참여)', error: '랭킹을 불러오지 못했어요', live: '' }[RK.state];
+  $('rankNote').textContent = note || (RK.uid ? '' : '로그인해야 랭킹에 등록돼요');
+  for (const el of document.querySelectorAll('.ltop')) {
+    const L = LINES.find(x => x.id === el.dataset.line);
+    const b = boardFor(L);
+    el.textContent = b.length ? `👑 오늘 1위 ${b[0].nick} ${b[0].score.toLocaleString()}점 · ${b.length}명 출근` : (RK.state === 'live' ? '오늘 첫 출근자가 되어 보세요' : '');
+  }
+}
+
+async function submitRun(total, kind) {
+  const out = $('endBoard');
+  const key = boardKey(LINE);
+  // 누적 기록
+  const st = { ...myStats() };
+  const today = kstDay(), yday = kstDay(-1);
+  st.plays = (st.plays || 0) + 1;
+  if (kind === 'seat') st.wins = (st.wins || 0) + 1;
+  if (kind === 'late') st.lates = (st.lates || 0) + 1;
+  if (kind === 'fight' || kind === 'pink') st.fights = (st.fights || 0) + 1;
+  if (st.lastDay !== today) st.streak = st.lastDay === yday ? (st.streak || 0) + 1 : 1;
+  st.lastDay = today;
+  lsSet('ss.stats', st);
+  if (!RK.daily) { out.innerHTML = ''; out.append(line('🎲 연습 모드라 랭킹에 등록되지 않았어요.')); return; }
+  const localBest = lsGet('ss.best', {});
+  if (!localBest[key] || total > localBest[key]) { localBest[key] = total; lsSet('ss.best', localBest); }
+  if (!RK.db || !RK.uid) { out.innerHTML = ''; out.append(line(`📅 오늘의 출근길 내 최고: ${localBest[key].toLocaleString()}점 (랭킹은 공유 링크에서 로그인 시 참여)`)); return; }
+  const nick = myNick();
+  if (!nick) { out.innerHTML = ''; out.append(line('닉네임을 정하면 랭킹에 올라가요 👇')); showNickPrompt(total, kind); return; }
+  await writeRun(nick, total, kind, st);
+}
+async function writeRun(nick, total, kind, st) {
+  const out = $('endBoard');
+  const key = boardKey(LINE);
+  const cur = RK.mine || {};
+  const best = { ...(cur.best || {}) };
+  const prev = best[key];
+  const improved = !prev || total > prev.score;
+  if (improved) best[key] = { score: total, kind, at: Date.now() };
+  const cutoff = kstDay(-14);
+  for (const k of Object.keys(best)) if (k.slice(0, 10) < cutoff) delete best[k];
+  out.innerHTML = ''; out.append(line('랭킹 저장 중…'));
+  try {
+    await RK.db.doc('runs/' + RK.uid).set({ nick, best, stats: st || myStats(), v: 1 });
+    lsSet('ss.nick', nick);
+    RK.mine = { nick, best, stats: st || myStats() }; RK.runs.set(RK.uid, RK.mine);
+    renderEndBoard(improved ? '🎉 오늘 최고 기록 갱신!' : `오늘 최고 기록은 ${prev.score.toLocaleString()}점 (이번 판은 등록 안 됨)`);
+  } catch (e) {
+    out.innerHTML = '';
+    out.append(line(e && e.code === 'invalid_argument' ? '이 링크에서는 보기만 가능해서 랭킹에 저장할 수 없어요 (공유 권한: 참여자 이상 필요)' : '랭킹 저장에 실패했어요. 잠시 후 다시 해 주세요.'));
+  }
+}
+function line(t) { const p = document.createElement('p'); p.className = 'sub'; p.textContent = t; return p; }
+function showNickPrompt(total, kind) {
+  const box = document.createElement('div'); box.className = 'nickrow';
+  const inp = document.createElement('input'); inp.id = 'endNick'; inp.maxLength = 12; inp.placeholder = '닉네임 (12자)'; inp.autocomplete = 'off';
+  const b = document.createElement('button'); b.className = 'go go2'; b.textContent = '랭킹 등록';
+  b.onclick = () => { const n = cleanNick(inp.value); if (!n) { inp.focus(); return; } $('nickInput').value = n; writeRun(n, total, kind); };
+  box.append(inp, b); $('endBoard').append(box);
+}
+function boardList(L, limit, mark) {
+  const b = boardFor(L);
+  const wrap = document.createElement('table'); wrap.className = 'board';
+  b.slice(0, limit).forEach((r, i) => {
+    const tr = document.createElement('tr'); if (r.id === mark) tr.className = 'me';
+    const c1 = document.createElement('td'); c1.textContent = i < 3 ? ['🥇', '🥈', '🥉'][i] : String(i + 1);
+    const c2 = document.createElement('td'); c2.textContent = r.nick + (r.id === mark ? ' (나)' : '');
+    const c3 = document.createElement('td'); c3.textContent = RESULT[r.kind] || '';
+    const c4 = document.createElement('td'); c4.textContent = r.score.toLocaleString(); c4.style.textAlign = 'right';
+    tr.append(c1, c2, c3, c4); wrap.append(tr);
+  });
+  return { el: wrap, all: b };
+}
+function renderEndBoard(head) {
+  const out = $('endBoard'); out.innerHTML = '';
+  const { el, all } = boardList(LINE, 5, RK.uid);
+  const myIdx = all.findIndex(r => r.id === RK.uid);
+  const h = document.createElement('h2'); h.textContent = `📅 오늘의 출근길 · ${LINE.name}`; out.append(h);
+  if (head) out.append(line(head));
+  if (myIdx >= 0) out.append(line(`내 순위 ${myIdx + 1}위 / ${all.length}명`));
+  out.append(el);
+  const more = document.createElement('button'); more.className = 'go go2'; more.textContent = '🏆 전체 랭킹'; more.onclick = () => openRank(LINE.id);
+  out.append(more);
+}
+let rankTab = '2';
+function openRank(id) { rankTab = id || rankTab; $('rankScreen').classList.add('show'); renderRankScreen(); }
+function renderRankScreen() {
+  const tabs = $('rankTabs'); tabs.innerHTML = '';
+  for (const L of LINES) {
+    const b = document.createElement('button'); b.className = 'rtab' + (L.id === rankTab ? ' on' : ''); b.style.setProperty('--lc', L.color);
+    b.textContent = `${L.badge} ${L.name}`; b.onclick = () => { rankTab = L.id; renderRankScreen(); };
+    tabs.append(b);
+  }
+  const L = LINES.find(x => x.id === rankTab);
+  const body = $('rankBody'); body.innerHTML = '';
+  const { el, all } = boardList(L, 30, RK.uid);
+  body.append(line(`${kstDay()} · ${L.stations[0]} → ${L.stations[L.stations.length - 1]} · ${all.length}명 출근`));
+  if (!all.length) body.append(line(RK.state === 'live' ? '아직 오늘 기록이 없어요. 첫 출근자가 되어 보세요!' : '랭킹을 불러오는 중이거나 이 화면에선 쓸 수 없어요.'));
+  else body.append(el);
+  const st = myStats();
+  body.append(line(`내 기록 · 🔥 연속 ${st.streak || 0}일 · 🪑 착석 ${st.wins || 0} · ⏰ 지각 ${st.lates || 0} · 💥 싸움 ${st.fights || 0} · 총 ${st.plays || 0}판`));
+}
+function inferKind(win, opt) {
+  if (win) return 'seat';
+  if (opt.emoji === '⏰😱') return 'late';
+  if (opt.emoji === '💥😡') return 'fight';
+  if (opt.emoji === '🤰😡') return 'pink';
+  return 'stand';
+}
+$('nickInput').addEventListener('change', () => { const n = cleanNick($('nickInput').value); $('nickInput').value = n; lsSet('ss.nick', n); });
+$('dailyToggle').addEventListener('change', () => { RK.daily = $('dailyToggle').checked; lsSet('ss.daily', RK.daily); });
+$('rankBtn').addEventListener('click', () => openRank());
+$('rankClose').addEventListener('click', () => $('rankScreen').classList.remove('show'));
+
 // ═════════════════════════ 루프 ═════════════════════════
 let last = performance.now();
 function loop(now) {
@@ -2577,6 +2780,7 @@ function loop(now) {
 }
 function start() {
   audio();
+  seedRun();
   if (!LINE) setLine(LINES[1]);
   else setLine(LINE);
   $('lineScreen').classList.remove('show');
@@ -2598,6 +2802,7 @@ setLine(LINES[1]); LINE = null;
 buildLineCards();
 LINE = LINES[1]; newStage1(); LINE = null;
 $('loading').remove();
+initRanking();
 requestAnimationFrame(loop);
 window.__game = { get G() { return G; }, get P() { return P; }, get seats() { return seats; }, get people() { return people; }, start,
   get gates() { return gates; }, get qlines() { return qlines; }, LINES, startLine, stage2(c = null) { newGame(c); G.started = true; }, setSchedule(o) { SCHEDULE = o; },
