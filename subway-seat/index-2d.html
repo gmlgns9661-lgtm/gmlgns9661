@@ -1,0 +1,1123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>출근길 자리전쟁</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: #141822; overflow: hidden;
+    touch-action: none; -webkit-user-select: none; user-select: none;
+    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #wrap { position: relative; margin: 0 auto; }
+  canvas { display: block; }
+  .overlay {
+    position: absolute; inset: 0; display: none; flex-direction: column; align-items: center;
+    justify-content: flex-start; background: rgba(12, 14, 22, .94); color: #fff;
+    text-align: center; padding: 1.4em 1.1em; overflow-y: auto;
+  }
+  .overlay.show { display: flex; }
+  .overlay h1 { font-size: 1.9em; margin: .3em 0 .1em; letter-spacing: -.02em; }
+  .overlay h2 { font-size: 1.05em; margin: 1em 0 .4em; color: #ffd166; }
+  .overlay p { margin: .3em 0; line-height: 1.5; font-size: .92em; color: #d8dbe6; }
+  .sub { color: #9aa3b8 !important; font-size: .85em !important; }
+  table { border-collapse: collapse; font-size: .82em; margin: .2em auto; width: 100%; max-width: 22em; }
+  td { padding: .25em .4em; border-bottom: 1px solid #2b3245; text-align: left; color: #d8dbe6; }
+  td:first-child { width: 2.2em; text-align: center; font-size: 1.15em; }
+  .btn {
+    margin-top: 1.1em; font-size: 1.15em; font-weight: 800; padding: .7em 2em; border-radius: 999px;
+    border: 0; background: linear-gradient(180deg, #33d17a, #1fa85a); color: #fff; cursor: pointer;
+    box-shadow: 0 .3em 0 #137a40; font-family: inherit;
+  }
+  .btn:active { transform: translateY(.2em); box-shadow: 0 .1em 0 #137a40; }
+  .big { font-size: 3.2em; margin: .2em 0; }
+  .score { font-size: 2.4em; font-weight: 900; color: #ffd166; margin: .1em 0; }
+  .rank { font-size: 1.2em; font-weight: 800; color: #7ee0ff; }
+  .cols { display: flex; gap: .6em; width: 100%; max-width: 22em; }
+  .cols > div { flex: 1; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div class="overlay show" id="startScreen">
+    <h1>🚇 출근길 자리전쟁</h1>
+    <p class="sub">2호선 신림 → 선릉 · 10개 역 안에 앉아라!</p>
+
+    <h2>규칙</h2>
+    <p>곧 내릴 사람을 찾아 <b>그 앞에 서고</b>,<br>자리가 나면 <b>좌석을 탭</b>해서 앉으세요.</p>
+    <p class="sub">옆 칸 탭 = 이동 · 사람 있는 칸 <b>길게 누르기</b> = 비집고 들어가기</p>
+
+    <div class="cols">
+      <div>
+        <h2>✅ 진짜 신호</h2>
+        <table>
+          <tr><td>👖</td><td>폰을 주머니에</td></tr>
+          <tr><td>🔒</td><td>가방 지퍼 잠금</td></tr>
+          <tr><td>🧥</td><td>짐 챙기기</td></tr>
+        </table>
+      </div>
+      <div>
+        <h2>❌ 가짜 신호</h2>
+        <table>
+          <tr><td>📞</td><td>통화 시작</td></tr>
+          <tr><td>😪</td><td>졸다 깸</td></tr>
+          <tr><td>🔄</td><td>자세 고침</td></tr>
+        </table>
+      </div>
+    </div>
+    <p class="sub">👀 창밖 보기 = 다음다음 역일 수도, 낚시일 수도</p>
+
+    <h2>🎒 가방</h2>
+    <table>
+      <tr><td>🔙</td><td><b>뒤로 메기</b>: 비집기 빠름, 대신 <b>40% 확률로 가방이 걸림</b> (연타해서 빼기) · 매너 하락</td></tr>
+      <tr><td>🔜</td><td><b>앞으로 메기</b>: 비집기 느림, 걸리지 않음 · 매너 상승 → 갈수록 길이 잘 열림</td></tr>
+      <tr><td>📱</td><td><b>폰 보기</b>: 환승역·하차 인원 정보가 보이지만 시야가 좁아짐</td></tr>
+    </table>
+
+    <h2>🚨 빌런 경보</h2>
+    <table>
+      <tr><td>🟡</td><td><b>쩍벌 대마왕</b>: 옆자리까지 차지 → 앞에서 <b>3번 탭(헛기침)</b></td></tr>
+      <tr><td>🟠</td><td><b>전설의 투척러</b>: 가방을 던져 자리 예약 → <b>가방이 닿기 전에 앉기</b></td></tr>
+      <tr><td>🔴</td><td><b>돌격대장 철수옹</b>: 한 줄로 돌진 → <b>빨간 줄에서 피하기</b></td></tr>
+    </table>
+
+    <button class="btn" id="startBtn">출근하기 ▶</button>
+    <p class="sub" style="margin-top:1em">소리가 납니다 🔊</p>
+  </div>
+
+  <div class="overlay" id="endScreen">
+    <div class="big" id="endEmoji">🪑</div>
+    <h1 id="endTitle">착석!</h1>
+    <p id="endDesc"></p>
+    <div class="score" id="endScore">0</div>
+    <div class="rank" id="endRank"></div>
+    <table id="endTable"></table>
+    <button class="btn" id="againBtn">다시 출근하기 ↻</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+// ───────────────────────── 기본 설정 ─────────────────────────
+const W = 360, H = 640;
+const COLS = 3, ROWS = 7;
+const COLX = [96, 180, 264];
+const rowY = r => 152 + r * 53;
+const SEAT_W = 40, SEAT_H = 48;
+const SEAT_X = [12, W - 12 - SEAT_W];          // 좌석 왼쪽 x (좌/우)
+const FRONT_COL = [0, 2];                       // 좌석 바로 앞 칸
+const STATIONS = ['신림', '봉천', '서울대입구', '낙성대', '사당', '방배', '서초', '교대', '강남', '역삼', '선릉'];
+const TRANSFER = new Set(['사당', '교대', '선릉']);
+const LAST = STATIONS.length - 1;               // 선릉 = 회사
+const BEYOND = 99;
+
+const TRUE_SIG = [{ e: '👖', t: '폰 넣음' }, { e: '🔒', t: '지퍼 잠금' }, { e: '🧥', t: '짐 챙김' }];
+const FAKE_SIG = [{ e: '📞', t: '통화' }, { e: '😪', t: '졸다 깸' }, { e: '🔄', t: '자세 고침' }, { e: '👀', t: '창밖' }];
+const FACES = ['😐', '🙂', '😑', '😶', '🙄', '🤨', '🧐', '😮', '😗'];
+const COATS = ['#5b6c8f', '#7a5c61', '#4f7a6b', '#8a7b5a', '#6a5a8a', '#3f5f7f', '#7f6a4f', '#556b2f', '#704f6f', '#5f6f7f'];
+
+// 빌런 정의 (모두 오리지널 캐릭터)
+const VILLAINS = {
+  jjeok: { name: '쩍벌 대마왕', face: '😎', grade: 'yellow', skill: '영토 확장', hint: '앞에 서서 3번 탭 = 헛기침!' },
+  throw: { name: '전설의 투척러', face: '😤', grade: 'orange', skill: '원거리 예약', hint: '가방이 닿기 전에 앉아라!' },
+  boss:  { name: '돌격대장 철수옹', face: '👴', grade: 'red', skill: '자리 직진', hint: '빨간 줄에서 벗어나라!' },
+};
+const GRADE = {
+  yellow: { label: '🟡 주의', color: '#ffd23f', dark: '#5a4a00' },
+  orange: { label: '🟠 경계', color: '#ff8c2a', dark: '#5a2a00' },
+  red:    { label: '🔴 비상', color: '#ff3b3b', dark: '#5a0000' },
+};
+// 몇 번째 역(도착 시)에 어떤 빌런이 타는지
+const SCHEDULE = { 1: 'jjeok', 2: 'throw', 4: 'boss', 6: 'throw', 7: 'boss' };
+
+// ───────────────────────── 캔버스 ─────────────────────────
+const wrap = document.getElementById('wrap');
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let scale = 1;
+function resize() {
+  scale = Math.min(innerWidth / W, innerHeight / H);
+  const dpr = Math.min(devicePixelRatio || 1, 3);
+  cv.style.width = W * scale + 'px'; cv.style.height = H * scale + 'px';
+  cv.width = Math.round(W * scale * dpr); cv.height = Math.round(H * scale * dpr);
+  wrap.style.width = W * scale + 'px'; wrap.style.height = H * scale + 'px';
+  wrap.style.fontSize = (15 * scale) + 'px';
+  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+}
+addEventListener('resize', resize);
+resize();
+
+// ───────────────────────── 유틸 ─────────────────────────
+const rand = (a, b) => a + Math.random() * (b - a);
+const randi = (a, b) => Math.floor(rand(a, b + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// ───────────────────────── 사운드 (합성) ─────────────────────────
+let AC = null;
+function audio() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+  if (AC && AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function tone(f, at, dur, type = 'square', vol = 0.05, f2 = null) {
+  const ac = AC; if (!ac) return;
+  const t0 = ac.currentTime + at;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+const SFX = {
+  chime() { tone(784, 0, .25, 'sine', .08); tone(988, .22, .25, 'sine', .08); tone(1175, .44, .4, 'sine', .08); },
+  siren(n = 6) { for (let i = 0; i < n; i++) tone(i % 2 ? 960 : 680, i * .2, .19, 'sawtooth', .04); },
+  alarm() { for (let i = 0; i < 3; i++) tone(1400, i * .12, .08, 'square', .05); },
+  step() { tone(320, 0, .05, 'triangle', .04); },
+  squeeze() { tone(200, 0, .12, 'triangle', .05, 140); },
+  stuck() { tone(150, 0, .3, 'sawtooth', .06, 90); tone(120, .1, .3, 'square', .04, 70); },
+  pop() { tone(500, 0, .08, 'square', .05, 900); },
+  cough() { tone(180, 0, .09, 'sawtooth', .07, 110); tone(160, .1, .07, 'sawtooth', .05, 100); },
+  boom() { tone(90, 0, .5, 'sawtooth', .12, 35); tone(60, 0, .6, 'square', .08, 30); },
+  whoosh() { tone(300, 0, .5, 'sawtooth', .04, 1200); },
+  thud() { tone(140, 0, .15, 'square', .07, 60); },
+  sit() { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .09, .3, 'triangle', .08)); },
+  fail() { [392, 330, 262].forEach((f, i) => tone(f, i * .25, .35, 'triangle', .07)); },
+};
+
+// ───────────────────────── 게임 상태 ─────────────────────────
+let G, P, grid, seats;
+
+function genStop(from) {
+  const opts = [], w = [];
+  for (let i = from; i <= LAST; i++) { opts.push(i); w.push(TRANSFER.has(STATIONS[i]) ? 3 : 1); }
+  opts.push(BEYOND); w.push(4);
+  let s = w.reduce((a, b) => a + b, 0) * Math.random();
+  for (let i = 0; i < opts.length; i++) { s -= w[i]; if (s <= 0) return opts[i]; }
+  return BEYOND;
+}
+function makeNpc(stopFrom) {
+  return { kind: 'npc', face: pick(FACES), color: pick(COATS), stop: genStop(stopFrom), x: 0, y: 0, stun: 0, mood: 0 };
+}
+function makeSeated(n, stopFrom) {
+  return { face: n.face, color: n.color, stop: genStop(stopFrom), x: n.x, y: n.y, sig: null, sigAt: null, sigShown: false };
+}
+const seatCenter = (side, r) => ({ x: SEAT_X[side] + SEAT_W / 2, y: rowY(r) });
+const cellAt = (c, r) => (c >= 0 && c < COLS && r >= 0 && r < ROWS) ? grid[c][r] : undefined;
+function setCell(c, r, o) { grid[c][r] = o; if (o) { o.c = c; o.r = r; } }
+
+function newGame() {
+  grid = Array.from({ length: COLS }, () => Array(ROWS).fill(null));
+  seats = [0, 1].map(side => Array.from({ length: ROWS }, (_, r) => {
+    const c = seatCenter(side, r);
+    const s = { side, r, occ: null, blocked: false, bagIncoming: false, claimAt: null };
+    const n = makeNpc(1); n.x = c.x; n.y = c.y;
+    s.occ = makeSeated(n, 1);
+    return s;
+  }));
+  P = {
+    kind: 'player', face: '😤', bag: 'back', bagSwitch: 0, phone: false, stun: 0,
+    stuck: null, squeeze: null, manner: 0, counters: 0, x: COLX[1], y: rowY(ROWS - 1),
+  };
+  setCell(1, ROWS - 1, P);
+  // 서 있는 승객
+  const free = [];
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) if (!grid[c][r]) free.push([c, r]);
+  free.sort(() => Math.random() - .5);
+  for (let i = 0; i < 15; i++) {
+    const [c, r] = free[i]; const n = makeNpc(1); n.x = COLX[c]; n.y = rowY(r); setCell(c, r, n);
+  }
+  G = {
+    phase: 'run', t: 0, clock: 0, runDur: 9, arriveDur: 4.6, next: 1,
+    floats: [], ghosts: [], bags: [], shake: 0, warn: null, cutin: null, boss: null,
+    jjeok: null, thrower: null, announce: null, ended: false, winFx: null, failFx: null,
+  };
+  assignSignals();
+  announce(`이번 열차는 선릉 방면입니다. 자리를 노려보세요!`, 3);
+}
+
+function seatedList() {
+  const out = [];
+  for (const side of [0, 1]) for (const s of seats[side]) if (s.occ && !s.occ.villain) out.push(s.occ);
+  return out;
+}
+function assignSignals() {
+  for (const o of seatedList()) {
+    o.sig = null; o.sigAt = null; o.sigShown = false;
+    if (o.stop === G.next) { o.sig = pick(TRUE_SIG); o.sigAt = rand(2, G.runDur - 1.6); }
+    else if (o.stop === G.next + 1 && Math.random() < .35) { o.sig = FAKE_SIG[3]; o.sigAt = rand(1, G.runDur - 1); }
+    else if (Math.random() < .2) { o.sig = pick(FAKE_SIG); o.sigAt = rand(.8, G.runDur - 1); }
+  }
+}
+
+function float(txt, x, y, color = '#fff', size = 15, life = 1.3) {
+  G.floats.push({ txt, x, y, color, size, life, t: 0 });
+}
+function announce(txt, dur = 3) { G.announce = { txt, t: 0, dur }; }
+
+// ───────────────────────── 역 진행 ─────────────────────────
+function startRun() {
+  G.phase = 'run'; G.t = 0; G.next++; G.runDur = rand(9, 11); G.warn = null;
+  assignSignals();
+}
+
+function startArrival() {
+  const k = G.next;
+  if (k >= LAST) { return failGame(); }
+  G.phase = 'arrive'; G.t = 0; G.boarded = false; G.refilled = false;
+  SFX.chime();
+  const v = SCHEDULE[k];
+  announce(v ? `이번 역은 ${STATIONS[k]}. 🚨 빌런이 탑승합니다! 자리를 사수하세요.`
+             : `이번 역은 ${STATIONS[k]}, ${STATIONS[k]}역입니다.${TRANSFER.has(STATIONS[k]) ? ' (환승역)' : ''}`, 3.5);
+  for (const o of seatedList()) { o.sig = null; o.sigShown = false; }
+
+  // 앉은 사람 하차
+  for (const side of [0, 1]) for (const s of seats[side]) {
+    if (s.occ && s.occ.stop === k) {
+      G.ghosts.push({ face: s.occ.face, color: s.occ.color, x: s.occ.x, y: s.occ.y, t: 0 });
+      s.occ = null;
+      if (!s.blocked) scheduleClaim(s);
+    }
+  }
+  // 서 있는 사람 하차
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    const o = grid[c][r];
+    if (o && o.kind === 'npc' && o.stop === k) { G.ghosts.push({ face: o.face, color: o.color, x: o.x, y: o.y, t: 0 }); grid[c][r] = null; }
+  }
+  // 기절해 있던 돌격대장 하차
+  if (G.boss && G.boss.state === 'dizzy') { G.ghosts.push({ face: '😵', color: '#b33', x: G.boss.x, y: G.boss.y, t: 0 }); G.boss = null; }
+}
+
+function scheduleClaim(s) {
+  const f = cellAt(FRONT_COL[s.side], s.r);
+  s.claimAt = G.clock + ((f && f.kind === 'npc') ? rand(.7, 1.3) : rand(1.5, 2.3));
+}
+
+function refill() {
+  let count = 0;
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) if (grid[c][r]) count++;
+  const target = 16;
+  const free = [];
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) if (!grid[c][r]) free.push([c, r]);
+  free.sort((a, b) => (a[1] - b[1]) + rand(-2.5, 2.5));   // 문(위쪽) 근처부터
+  for (const [c, r] of free) {
+    if (count >= target) break;
+    const n = makeNpc(G.next + 1); n.x = COLX[1]; n.y = 100; setCell(c, r, n); count++;
+  }
+}
+
+// ───────────────────────── 빌런 ─────────────────────────
+function emptySeats() {
+  const out = [];
+  for (const side of [0, 1]) for (const s of seats[side]) if (!s.occ && !s.blocked && !s.bagIncoming) out.push(s);
+  return out;
+}
+function freeCellNearDoor() {
+  for (let r = 0; r < ROWS; r++) for (const c of [1, 0, 2]) if (!grid[c][r]) return [c, r];
+  return null;
+}
+function boardVillain(type) {
+  const V = VILLAINS[type];
+  G.cutin = { type, t: 0 };
+  G.shake = .45;
+  SFX.siren(4); SFX.alarm();
+
+  if (type === 'jjeok') {
+    let s = pick(emptySeats());
+    if (!s) { // 빈자리 없으면 아무 자리나 밀고 앉음
+      const cands = [];
+      for (const side of [0, 1]) for (const x of seats[side]) if (x.occ && !x.occ.villain) cands.push(x);
+      s = pick(cands);
+      G.ghosts.push({ face: s.occ.face, color: s.occ.color, x: s.occ.x, y: s.occ.y, t: 0 });
+    }
+    const c = seatCenter(s.side, s.r);
+    s.occ = { villain: 'jjeok', face: V.face, color: '#2d2d2d', stop: BEYOND, x: COLX[1], y: 100 };
+    s.claimAt = null;
+    const nbR = s.r + 1 < ROWS ? s.r + 1 : s.r - 1;
+    const nb = seats[s.side][nbR];
+    nb.blocked = true; nb.claimAt = null;
+    G.jjeok = { side: s.side, r: s.r, nbR, coughs: 0, coughT: 0, done: false };
+    float('쩍!', c.x + 30, c.y, GRADE.yellow.color, 22);
+  }
+
+  if (type === 'throw') {
+    let pos = freeCellNearDoor();
+    if (!pos) { pos = [1, 0]; const o = grid[1][0]; if (o && o.kind !== 'player') G.ghosts.push({ face: o.face, color: o.color, x: o.x, y: o.y, t: 0 }); else pos = [0, 0]; }
+    const v = { kind: 'villain', vtype: 'throw', face: V.face, color: '#a0442a', x: COLX[1], y: 100, stun: 0, aim: null, aimAt: 0, thrownAt: -1 };
+    setCell(pos[0], pos[1], v);
+    G.thrower = v;
+  }
+
+  if (type === 'boss') {
+    const empt = emptySeats();
+    let col;
+    if (empt.length) col = FRONT_COL[pick(empt).side];
+    else if (P.c !== 1) col = P.c;
+    else col = pick([0, 2]);
+    G.boss = { col, state: 'tele', at: G.clock + 1.1, x: COLX[col], y: 104, hitPlayer: false, rowsDone: new Set() };
+    // 다들 얼어붙음 → NPC 착석 지연
+    for (const side of [0, 1]) for (const s of seats[side]) if (s.claimAt) s.claimAt += 2;
+  }
+}
+
+function updateVillains(dt) {
+  // 쩍벌: 헛기침 카운트 리셋
+  const J = G.jjeok;
+  if (J && J.coughs > 0) { J.coughT -= dt; if (J.coughT <= 0) J.coughs = 0; }
+
+  // 투척러
+  const T = G.thrower;
+  if (T && T.c !== undefined && grid[T.c][T.r] === T) {
+    T.stun = Math.max(0, T.stun - dt);
+    if (!T.aim && T.stun <= 0 && G.thrownAt !== G.next) {
+      const cand = emptySeats();
+      if (cand.length) {
+        // 플레이어 근처 자리를 우선 노림
+        cand.sort((a, b) => Math.abs(a.r - P.r) - Math.abs(b.r - P.r));
+        T.aim = cand[0]; T.aimAt = G.clock + .75; T.aim.bagIncoming = true; T.aim.claimAt = null;
+        G.thrownAt = G.next;
+        SFX.alarm();
+      }
+    } else if (T.aim && G.clock >= T.aimAt && !T.launched) {
+      T.launched = true;
+      const c = seatCenter(T.aim.side, T.aim.r);
+      G.bags.push({ seat: T.aim, sx: T.x, sy: T.y, ex: c.x, ey: c.y, t: 0, dur: 1.15, back: false });
+      SFX.whoosh();
+    }
+  }
+  // 날아가는 가방
+  for (const b of G.bags) {
+    b.t += dt;
+    if (!b.back && b.t >= b.dur) {
+      b.done = true;
+      const s = b.seat; s.bagIncoming = false;
+      if (!s.occ && T) {
+        // 자리 예약 성공 → 투척러 착석
+        if (grid[T.c] && grid[T.c][T.r] === T) grid[T.c][T.r] = null;
+        s.occ = { villain: 'throw', face: '😏', color: T.color, stop: BEYOND, x: T.x, y: T.y };
+        G.thrower = null;
+        float('자리 맡았어요~ 👜', b.ex + (s.side ? -50 : 50), b.ey, GRADE.orange.color, 14);
+        SFX.thud();
+      }
+    }
+    if (b.back && b.t >= b.dur) b.done = true;
+  }
+  G.bags = G.bags.filter(b => !b.done);
+
+  // 돌격대장
+  const B = G.boss;
+  if (B) {
+    if (B.state === 'tele' && G.clock >= B.at + 1.3) { B.state = 'charge'; SFX.whoosh(); G.shake = .3; }
+    if (B.state === 'charge') {
+      B.y += 720 * dt;
+      for (let r = 0; r < ROWS; r++) {
+        if (B.rowsDone.has(r) || B.y < rowY(r)) continue;
+        B.rowsDone.add(r);
+        const o = grid[B.col][r];
+        if (o === P) {
+          B.hitPlayer = true;
+          P.squeeze = null; P.stuck = null; P.stun = 1.6;
+          const side = grid[1][r];
+          setCell(1, r, P); setCell(B.col, r, side || null);
+          if (side) side.stun = 1;
+          float('으악!!', P.x, P.y - 30, '#ff5d5d', 20);
+          G.shake = .5; SFX.thud();
+        } else if (o && o.kind === 'npc') {
+          o.stun = 1.8;
+          if (!grid[1][r]) { grid[B.col][r] = null; setCell(1, r, o); }
+          float('😵', o.x, o.y - 26, '#fff', 18, .9);
+          SFX.thud();
+        }
+        // 플레이어를 들이받은 뒤엔 빈자리로 다이빙
+        const s = seats[B.col === 0 ? 0 : 1][r];
+        if (B.hitPlayer && !s.occ && !s.blocked && !s.bagIncoming) {
+          s.occ = { villain: 'boss', face: '😁', color: '#b33', stop: G.next + 1, x: B.x, y: rowY(r) };
+          s.claimAt = null;
+          float('자리 직진 성공...😁', COLX[1], rowY(r), GRADE.red.color, 15);
+          G.boss = null;
+          return;
+        }
+      }
+      if (B.y >= 500) {
+        B.y = 500; B.state = 'dizzy';
+        G.shake = .7; SFX.boom();
+        if (!B.hitPlayer) {
+          P.counters++;
+          float('쾅!!', B.x, B.y - 20, '#fff', 30, 1.4);
+          float('참교육 성공! +300', COLX[1], 330, GRADE.red.color, 20, 1.8);
+        } else float('쾅!', B.x, B.y - 20, '#fff', 24);
+      }
+    }
+  }
+}
+
+function cough(seat) {
+  const J = G.jjeok;
+  if (!J || J.done) return false;
+  const inRange = P.c === FRONT_COL[J.side] && (P.r === J.r || P.r === J.nbR);
+  if (!inRange) { float('쩍벌 대마왕 앞으로 가야 해요', P.x, P.y - 34, '#ffd23f', 13); return true; }
+  J.coughs++; J.coughT = 2.5;
+  SFX.cough();
+  const c = seatCenter(J.side, J.r);
+  float('에헴!' + '!'.repeat(J.coughs - 1), c.x + (J.side ? -40 : 40), c.y - 10 - J.coughs * 8, '#ffd23f', 16 + J.coughs * 3);
+  if (J.coughs >= 3) {
+    J.done = true;
+    const nb = seats[J.side][J.nbR];
+    nb.blocked = false;
+    if (!nb.occ) scheduleClaim(nb);
+    seats[J.side][J.r].occ.face = '😳';
+    P.counters++;
+    G.shake = .25;
+    float('다리 오므림! 참교육 +300', COLX[1], c.y + 30, '#ffd23f', 17, 1.8);
+  }
+  return true;
+}
+
+// ───────────────────────── 착석 (NPC) ─────────────────────────
+function updateClaims() {
+  for (const side of [0, 1]) for (const s of seats[side]) {
+    if (s.occ || s.blocked || s.bagIncoming) continue;
+    if (s.claimAt == null) { scheduleClaim(s); continue; }
+    if (G.clock < s.claimAt) continue;
+    const fc = FRONT_COL[side];
+    const cands = [[fc, s.r], [fc, s.r - 1], [fc, s.r + 1], [1, s.r]];
+    let who = null;
+    for (const [c, r] of cands) { const o = cellAt(c, r); if (o && o.kind === 'npc' && o.stun <= 0) { who = o; break; } }
+    if (!who) { s.claimAt = G.clock + .6; continue; }
+    const playerInFront = cellAt(fc, s.r) === P;
+    grid[who.c][who.r] = null;
+    s.occ = makeSeated(who, G.next + 1);
+    s.claimAt = null;
+    if (playerInFront) float('새치기!? 😱', s.occ.x + (side ? -46 : 46), s.occ.y, '#ff7a7a', 15);
+  }
+}
+
+// ───────────────────────── 플레이어 ─────────────────────────
+function squeezeDur() {
+  const base = P.bag === 'back' ? .45 : .8;
+  return base * clamp(1 - P.manner * 0.012, 0.55, 1.4);
+}
+function busy() { return P.stun > 0 || P.stuck || P.bagSwitch > 0 || G.phase === 'end'; }
+
+function tryMove(c, r) {
+  const o = cellAt(c, r);
+  if (o === undefined) return;
+  if (Math.abs(c - P.c) + Math.abs(r - P.r) !== 1) { float('바로 옆 칸만 갈 수 있어요', P.x, P.y - 34, '#cfd6ff', 12); return; }
+  if (!o) { grid[P.c][P.r] = null; setCell(c, r, P); SFX.step(); return; }
+  if (o.kind === 'villain') { float('꿈쩍도 안 한다...', o.x, o.y - 30, '#ffb3b3', 13); return; }
+  P.squeeze = { c, r, t: 0, dur: squeezeDur(), target: o };
+  SFX.squeeze();
+}
+function finishSqueeze(c, r) {
+  const o = grid[c][r];
+  const oc = P.c, or = P.r;
+  setCell(c, r, P); setCell(oc, or, o || null);
+}
+function updatePlayer(dt) {
+  P.stun = Math.max(0, P.stun - dt);
+  if (P.bagSwitch > 0) {
+    P.bagSwitch -= dt;
+    if (P.bagSwitch <= 0) { P.bag = P.bag === 'back' ? 'front' : 'back'; float(P.bag === 'front' ? '🎒 앞으로 멤 (매너 모드)' : '🎒 뒤로 멤 (스피드 모드)', P.x, P.y - 34, '#9fe8ff', 13); }
+  }
+  const S = P.squeeze;
+  if (S) {
+    if (grid[S.c][S.r] !== S.target) { P.squeeze = null; }
+    else {
+      S.t += dt;
+      if (S.t >= S.dur) {
+        P.squeeze = null;
+        if (P.bag === 'back' && Math.random() < 0.4) {
+          P.stuck = { c: S.c, r: S.r, taps: 0, need: 6, t: 0, who: S.target };
+          S.target.mood = 2.5;
+          P.manner -= 4;
+          G.shake = .2;
+          SFX.stuck();
+          float('🎒 가방 걸림!! 연타!', P.x, P.y - 40, '#ff6b6b', 17, 1.6);
+          float('아 가방!! 😠', S.target.x, S.target.y - 30, '#ffb3b3', 14);
+        } else {
+          finishSqueeze(S.c, S.r);
+          if (P.bag === 'front') { P.manner += 2; float('실례합니다 🙏', P.x, P.y - 32, '#a8ffb0', 13, 1); }
+          else float('슥-', P.x, P.y - 30, '#fff', 13, .7);
+        }
+      }
+    }
+  }
+  const K = P.stuck;
+  if (K) {
+    K.t += dt;
+    if (grid[K.c][K.r] !== K.who) { P.stuck = null; }
+    else if (K.taps >= K.need) {
+      P.stuck = null; finishSqueeze(K.c, K.r); SFX.pop();
+      float('뽁! 빠졌다', P.x, P.y - 32, '#fff', 15);
+    } else if (K.t > 3.6) {
+      P.stuck = null; P.manner -= 2;
+      float('겨우 빠졌다... (제자리)', P.x, P.y - 32, '#ccc', 13);
+    }
+  }
+  // NPC 기분/기절 감소
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    const o = grid[c][r]; if (o && o.kind === 'npc') { o.stun = Math.max(0, o.stun - dt); o.mood = Math.max(0, o.mood - dt); }
+  }
+}
+
+function trySit(s) {
+  if (busy() || P.squeeze) return;
+  if (s.occ && s.occ.villain === 'jjeok') { cough(s); return; }
+  if (s.blocked) { if (!cough(s)) float('다리가 놓여 있다 🦵', P.x, P.y - 34, '#ffd23f', 13); return; }
+  const inFront = P.c === FRONT_COL[s.side] && P.r === s.r;
+  if (s.occ) { float(inFront ? '아직 앉아 있다... 신호를 봐!' : '좌석 앞에 서야 해요', P.x, P.y - 34, '#cfd6ff', 12); return; }
+  if (!inFront) { float('좌석 바로 앞에 서야 앉을 수 있어요', P.x, P.y - 34, '#cfd6ff', 12); return; }
+  winGame(s);
+}
+
+// ───────────────────────── 종료 ─────────────────────────
+function currentStop() { if (G.endStop != null) return G.endStop; return G.phase === 'arrive' ? G.next : G.next - 1; }
+
+function winGame(s) {
+  const c = seatCenter(s.side, s.r);
+  let bounced = false;
+  for (const b of G.bags) if (b.seat === s && !b.back) {
+    b.back = true; b.t = 0; b.dur = .6; [b.sx, b.ex] = [b.ex, b.sx]; [b.sy, b.ey] = [b.ey, b.sy];
+    bounced = true;
+  }
+  if (bounced) {
+    s.bagIncoming = false; P.counters++;
+    if (G.thrower) { G.thrower.stun = 99; G.thrower.face = '😵'; }
+    float('퍽! 가방 반사 +300', c.x + (s.side ? -60 : 60), c.y - 20, GRADE.orange.color, 17, 1.8);
+  }
+  G.endStop = currentStop(); G.cutin = null; G.warn = null;
+  grid[P.c][P.r] = null;
+  s.occ = { player: true, face: '🥹', color: '#ff7a59', x: P.x, y: P.y, stop: BEYOND };
+  G.phase = 'end'; G.ended = true;
+  G.winFx = { t: 0, seat: s };
+  SFX.sit();
+  const remain = LAST - currentStop();
+  const parts = [
+    ['🚉', `남은 ${remain}개 역 편하게 감`, remain * 150],
+    ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
+    ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
+  ];
+  setTimeout(() => showEnd(true, parts, remain), 1700);
+}
+function failGame() {
+  G.endStop = LAST; G.cutin = null;
+  G.phase = 'end'; G.ended = true; G.failFx = { t: 0 };
+  SFX.fail();
+  announce(`${STATIONS[LAST]} 도착. 오늘도 서서 출근...`, 5);
+  const parts = [
+    ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
+    ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
+  ];
+  setTimeout(() => showEnd(false, parts, 0), 1400);
+}
+function showEnd(win, parts, remain) {
+  const total = Math.max(0, parts.reduce((a, p) => a + p[2], 0));
+  document.getElementById('endEmoji').textContent = win ? '🪑✨' : '🧍😩';
+  document.getElementById('endTitle').textContent = win ? '착석!' : '선릉 도착…';
+  document.getElementById('endDesc').textContent = win
+    ? `${STATIONS[currentStop()] || ''} 근처에서 자리를 쟁취했다!`
+    : '오늘도 서서 출근했다. 내일은 꼭 앉자.';
+  document.getElementById('endScore').textContent = total.toLocaleString() + '점';
+  let rank = '평범한 직장인';
+  if (!win) rank = '만원 지하철의 생존자';
+  else if (total >= 1800) rank = '👑 자리의 신';
+  else if (total >= 1200) rank = '🥇 눈치 9단';
+  else if (total >= 600) rank = '🥈 출근 고수';
+  document.getElementById('endRank').textContent = rank;
+  document.getElementById('endTable').innerHTML = parts.map(p => `<tr><td>${p[0]}</td><td>${p[1]}</td><td style="text-align:right">${p[2] >= 0 ? '+' : ''}${p[2]}</td></tr>`).join('');
+  document.getElementById('endScreen').classList.add('show');
+}
+
+// ───────────────────────── 입력 ─────────────────────────
+const BTN_BAG = { x: 12, y: 572, w: 164, h: 58 };
+const BTN_PHONE = { x: 184, y: 572, w: 164, h: 58 };
+const inRect = (x, y, r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+
+function toLocal(e) {
+  const rc = cv.getBoundingClientRect();
+  return { x: (e.clientX - rc.left) / rc.width * W, y: (e.clientY - rc.top) / rc.height * H };
+}
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (!G || G.phase === 'end') return;
+  audio();
+  const { x, y } = toLocal(e);
+
+  if (P.stuck) { P.stuck.taps++; SFX.squeeze(); float('빼!', P.x + rand(-20, 20), P.y - 30, '#ff9a9a', 13, .5); return; }
+
+  if (inRect(x, y, BTN_BAG)) {
+    if (P.stun > 0 || P.squeeze) return;
+    if (P.bagSwitch <= 0) { P.bagSwitch = .5; SFX.pop(); }
+    return;
+  }
+  if (inRect(x, y, BTN_PHONE)) { P.phone = !P.phone; SFX.pop(); return; }
+
+  if (P.stun > 0) { float('어질어질...', P.x, P.y - 32, '#ccc', 13, .7); return; }
+  if (busy() || P.squeeze) return;
+
+  for (const side of [0, 1]) for (const s of seats[side]) {
+    if (x >= SEAT_X[side] - 4 && x <= SEAT_X[side] + SEAT_W + 4 && Math.abs(y - rowY(s.r)) <= SEAT_H / 2 + 2) { trySit(s); return; }
+  }
+  let best = null, bd = 34 * 34;
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    const d = (x - COLX[c]) ** 2 + (y - rowY(r)) ** 2;
+    if (d < bd) { bd = d; best = [c, r]; }
+  }
+  if (best && !(best[0] === P.c && best[1] === P.r)) tryMove(best[0], best[1]);
+});
+const release = () => {
+  if (P && P.squeeze) { P.squeeze = null; float('포기...', P.x, P.y - 30, '#aaa', 12, .6); }
+};
+cv.addEventListener('pointerup', release);
+cv.addEventListener('pointercancel', release);
+cv.addEventListener('pointerleave', release);
+
+// ───────────────────────── 업데이트 ─────────────────────────
+function update(dt) {
+  G.clock += dt;
+  G.shake = Math.max(0, G.shake - dt);
+  for (const f of G.floats) f.t += dt;
+  G.floats = G.floats.filter(f => f.t < f.life);
+  for (const g of G.ghosts) g.t += dt;
+  G.ghosts = G.ghosts.filter(g => g.t < 1);
+  if (G.announce) { G.announce.t += dt; if (G.announce.t > G.announce.dur) G.announce = null; }
+  if (G.cutin) { G.cutin.t += dt; if (G.cutin.t > 1.5) G.cutin = null; }
+  if (G.winFx) G.winFx.t += dt;
+  if (G.failFx) G.failFx.t += dt;
+
+  animate(dt);
+  if (G.phase === 'end') return;
+
+  G.t += dt;
+  if (G.phase === 'run') {
+    for (const o of seatedList()) if (o.sig && !o.sigShown && G.t >= o.sigAt) o.sigShown = true;
+    const v = SCHEDULE[G.next];
+    if (v && !G.warn && G.runDur - G.t <= 3.2) {
+      G.warn = { type: v, t: 0 };
+      SFX.siren(8);
+    }
+    if (G.t >= G.runDur) startArrival();
+  } else if (G.phase === 'arrive') {
+    const v = SCHEDULE[G.next];
+    if (v && !G.boarded && G.t >= .2) { G.boarded = true; boardVillain(v); }
+    if (!G.refilled && G.t >= 2.6) { G.refilled = true; refill(); }
+    if (G.t >= G.arriveDur) { startRun(); }
+  }
+  if (G.warn) G.warn.t += dt;
+
+  updatePlayer(dt);
+  updateVillains(dt);
+  if (G.phase !== 'end') updateClaims();
+}
+
+function animate(dt) {
+  const k = 1 - Math.pow(0.0005, dt);
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    const o = grid[c][r]; if (!o) continue;
+    let tx = COLX[c], ty = rowY(r);
+    if (o === P && P.squeeze) { const s = P.squeeze; const p = s.t / s.dur; tx = lerp(tx, COLX[s.c], p * .5); ty = lerp(ty, rowY(s.r), p * .5); }
+    if (o === P && P.stuck) { tx = lerp(tx, COLX[P.stuck.c], .5) + Math.sin(G.clock * 40) * 2.5; ty = lerp(ty, rowY(P.stuck.r), .5); }
+    o.x = lerp(o.x, tx, k); o.y = lerp(o.y, ty, k);
+  }
+  for (const side of [0, 1]) for (const s of seats[side]) if (s.occ) {
+    const c = seatCenter(side, s.r); s.occ.x = lerp(s.occ.x, c.x, k); s.occ.y = lerp(s.occ.y, c.y, k);
+  }
+  if (G.boss && G.boss.state === 'tele') G.boss.y = lerp(G.boss.y, 118, k);
+}
+
+// ───────────────────────── 그리기 ─────────────────────────
+function rr(x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function text(t, x, y, size, color, align = 'center', weight = 700, stroke = null) {
+  ctx.font = `${weight} ${size}px system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+  ctx.textAlign = align; ctx.textBaseline = 'middle';
+  if (stroke) { ctx.lineWidth = 4; ctx.strokeStyle = stroke; ctx.strokeText(t, x, y); }
+  ctx.fillStyle = color; ctx.fillText(t, x, y);
+}
+function emoji(e, x, y, size) {
+  ctx.font = `${size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(e, x, y + 1);
+}
+function person(o, opts = {}) {
+  const { x, y } = o;
+  ctx.save();
+  if (opts.alpha != null) ctx.globalAlpha = opts.alpha;
+  // 어깨
+  ctx.fillStyle = 'rgba(0,0,0,.25)';
+  ctx.beginPath(); ctx.ellipse(x, y + 6, 21, 13, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = o.color;
+  ctx.beginPath(); ctx.ellipse(x, y + 3, 20, 13, 0, 0, Math.PI * 2); ctx.fill();
+  if (opts.ring) { ctx.lineWidth = 3; ctx.strokeStyle = opts.ring; ctx.stroke(); }
+  // 얼굴
+  emoji(o.face, x, y - 2, opts.size || 22);
+  ctx.restore();
+}
+
+function drawCar() {
+  // 바닥
+  ctx.fillStyle = '#cfc9bd'; ctx.fillRect(0, 100, W, 460);
+  ctx.strokeStyle = 'rgba(0,0,0,.05)'; ctx.lineWidth = 1;
+  for (let y = 110; y < 560; y += 16) { ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(W - 60, y); ctx.stroke(); }
+  // 벽
+  ctx.fillStyle = '#8d96a8'; ctx.fillRect(0, 100, 8, 460); ctx.fillRect(W - 8, 100, 8, 460);
+  ctx.fillStyle = '#6d7587'; ctx.fillRect(0, 552, W, 10);
+  // 출입문
+  const open = G.phase === 'arrive' ? clamp(Math.min(G.t, G.arriveDur - G.t) * 3, 0, 1) : 0;
+  ctx.fillStyle = '#3a4152'; ctx.fillRect(0, 100, W, 16);
+  ctx.fillStyle = open > 0 ? '#ffe9a8' : '#3a4152'; ctx.fillRect(120, 100, 120, 16);
+  ctx.fillStyle = '#9aa6bd';
+  ctx.fillRect(120 - open * 55, 102, 60, 12); ctx.fillRect(180 + open * 55, 102, 60, 12);
+  text(open > .3 ? '문이 열립니다' : '출입문', 180, 108, 9, open > .3 ? '#5a4500' : '#1c2130', 'center', 800);
+  // 손잡이 봉
+  ctx.fillStyle = '#b8bfcc';
+  for (const x of [138, 222]) ctx.fillRect(x - 1.5, 130, 3, 410);
+  // 칸 표시
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    ctx.fillStyle = 'rgba(80,70,50,.08)';
+    ctx.beginPath(); ctx.arc(COLX[c], rowY(r) + 4, 20, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawSeats() {
+  for (const side of [0, 1]) for (const s of seats[side]) {
+    const x = SEAT_X[side], y = rowY(s.r) - SEAT_H / 2;
+    const playerFront = P.c === FRONT_COL[side] && P.r === s.r && !s.occ && !s.blocked;
+    ctx.fillStyle = s.blocked ? '#8b6a2b' : (playerFront ? '#3ee08a' : '#3c7bbf');
+    rr(x, y + 2, SEAT_W, SEAT_H - 4, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.15)'; rr(x + 4, y + 6, SEAT_W - 8, 10, 4); ctx.fill();
+    if (!s.occ) {
+      if (s.blocked) emoji('🦵', x + SEAT_W / 2, rowY(s.r), 24);
+      else {
+        const pulse = .5 + .5 * Math.sin(G.clock * 8);
+        ctx.strokeStyle = `rgba(255,255,120,${.4 + pulse * .6})`; ctx.lineWidth = 3;
+        rr(x - 2, y, SEAT_W + 4, SEAT_H, 8); ctx.stroke();
+        text('빈자리!', x + SEAT_W / 2, rowY(s.r), 10, '#fff', 'center', 900, '#1d3d66');
+      }
+      if (s.bagIncoming) {
+        const pulse = .5 + .5 * Math.sin(G.clock * 18);
+        ctx.strokeStyle = `rgba(255,140,42,${.5 + pulse * .5})`; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(x + SEAT_W / 2, rowY(s.r), 26 + pulse * 4, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+  }
+  // 앉은 사람
+  for (const side of [0, 1]) for (const s of seats[side]) {
+    const o = s.occ; if (!o) continue;
+    person(o, { ring: o.villain ? GRADE[VILLAINS[o.villain].grade].color : (o.player ? '#ffd166' : null), size: o.player ? 26 : 22 });
+    if (o.villain === 'jjeok') {
+      const nbY = rowY(G.jjeok ? G.jjeok.nbR : s.r);
+      if (G.jjeok && !G.jjeok.done) {
+        ctx.strokeStyle = 'rgba(255,210,63,.7)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x, nbY); ctx.stroke(); ctx.setLineDash([]);
+        if (G.jjeok.coughs) text('에헴 ' + G.jjeok.coughs + '/3', o.x + (side ? -34 : 34), o.y - 18, 10, '#ffd23f', 'center', 900, '#000');
+      }
+    }
+    if (o.villain) tag(VILLAINS[o.villain].name, o.x + (side ? -2 : 2), o.y + 22, GRADE[VILLAINS[o.villain].grade].color);
+    // 신호 말풍선
+    if (o.sig && o.sigShown && G.phase === 'run') {
+      const bx = side ? o.x - 40 : o.x + 40, by = o.y - 14;
+      const bob = Math.sin(G.clock * 5 + s.r) * 2;
+      ctx.fillStyle = 'rgba(255,255,255,.95)';
+      rr(bx - 19, by - 15 + bob, 38, 28, 9); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(bx + (side ? 14 : -14), by + 8 + bob); ctx.lineTo(o.x + (side ? -12 : 12), o.y - 4); ctx.lineTo(bx + (side ? 6 : -6), by + 12 + bob); ctx.fill();
+      emoji(o.sig.e, bx, by - 2 + bob, 17);
+      text(o.sig.t, bx, by + 22 + bob, 8, '#1c2130', 'center', 800, 'rgba(255,255,255,.8)');
+    }
+  }
+}
+function tag(t, x, y, color) {
+  ctx.font = '800 9px system-ui, sans-serif';
+  const w = ctx.measureText(t).width + 8;
+  ctx.fillStyle = 'rgba(0,0,0,.75)'; rr(x - w / 2, y - 7, w, 14, 7); ctx.fill();
+  text(t, x, y, 9, color, 'center', 800);
+}
+
+function drawPeople() {
+  const list = [];
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) if (grid[c][r]) list.push(grid[c][r]);
+  list.sort((a, b) => a.y - b.y);
+  for (const o of list) {
+    if (o === P) { drawPlayer(); continue; }
+    if (o.kind === 'villain') {
+      const V = VILLAINS[o.vtype];
+      person(o, { ring: GRADE[V.grade].color, size: 24 });
+      tag(V.name, o.x, o.y + 24, GRADE[V.grade].color);
+      emoji('👜', o.x + 18, o.y + 6, 14);
+      if (o.aim && !o.launched) { exclaim(o.x, o.y - 30); }
+      continue;
+    }
+    person(o, { alpha: 1 });
+    if (o.mood > 0) emoji('😠', o.x + 14, o.y - 16, 13);
+    if (o.stun > 0) emoji('💫', o.x, o.y - 20, 13);
+  }
+}
+function exclaim(x, y) {
+  const s = 1 + .2 * Math.sin(G.clock * 20);
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.fillStyle = '#ff3b3b'; ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+  text('!', 0, 1, 16, '#fff', 'center', 900);
+  ctx.restore();
+}
+function drawPlayer() {
+  const { x, y } = P;
+  ctx.save();
+  if (P.stuck) ctx.translate(Math.sin(G.clock * 50) * 1.5, 0);
+  // 내 위치 표시
+  ctx.fillStyle = 'rgba(255,209,102,.35)';
+  ctx.beginPath(); ctx.ellipse(x, y + 8, 26, 16, 0, 0, Math.PI * 2); ctx.fill();
+  // 뒤로 멘 가방 (등 = 화면 위쪽, 크게 튀어나옴)
+  const bagBack = P.bag === 'back';
+  const bagColor = P.stuck ? '#e04848' : '#6b4a2b';
+  if (bagBack) {
+    ctx.fillStyle = bagColor; rr(x - 17, y - 26, 34, 18, 6); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(x - 10, y - 22, 20, 3);
+  }
+  ctx.fillStyle = '#ff7a59';
+  ctx.beginPath(); ctx.ellipse(x, y + 3, 20, 13, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = '#ffd166'; ctx.stroke();
+  const face = P.stun > 0 ? '😵' : P.stuck ? '😣' : P.squeeze ? '😬' : P.phone ? '😐' : '😤';
+  emoji(face, x, y - 2, 23);
+  if (!bagBack) { ctx.fillStyle = bagColor; rr(x - 10, y + 6, 20, 12, 4); ctx.fill(); }
+  if (P.phone) emoji('📱', x + 15, y + 8, 13);
+  ctx.restore();
+  text('나', x, y + 24, 10, '#1c2130', 'center', 900, '#ffd166');
+  // 비집기 게이지
+  if (P.squeeze) {
+    const p = P.squeeze.t / P.squeeze.dur;
+    ctx.fillStyle = 'rgba(0,0,0,.6)'; rr(x - 22, y - 42, 44, 8, 4); ctx.fill();
+    ctx.fillStyle = P.bag === 'back' ? '#ffb347' : '#6ee7a1'; rr(x - 22, y - 42, 44 * p, 8, 4); ctx.fill();
+    text('비집는 중', x, y - 50, 9, '#fff', 'center', 800, '#000');
+  }
+  if (P.stuck) {
+    const p = P.stuck.taps / P.stuck.need;
+    ctx.fillStyle = 'rgba(0,0,0,.7)'; rr(x - 30, y - 48, 60, 10, 5); ctx.fill();
+    ctx.fillStyle = '#ff6b6b'; rr(x - 30, y - 48, 60 * p, 10, 5); ctx.fill();
+    text('🎒 걸림! 연타!', x, y - 58, 11, '#fff', 'center', 900, '#900');
+  }
+  if (P.bagSwitch > 0) text('가방 고쳐 메는 중…', x, y - 44, 10, '#fff', 'center', 800, '#000');
+}
+
+function drawBoss() {
+  const B = G.boss; if (!B) return;
+  const V = VILLAINS.boss;
+  if (B.state === 'tele') {
+    const on = G.clock >= B.at;
+    if (on) {
+      const p = .35 + .3 * Math.sin(G.clock * 22);
+      ctx.fillStyle = `rgba(255,40,40,${p})`;
+      ctx.fillRect(COLX[B.col] - 26, 120, 52, 390);
+      for (let y = 150; y < 500; y += 40) text('▼', COLX[B.col], y, 18, 'rgba(255,255,255,.85)', 'center', 900);
+      exclaim(B.x, B.y - 30);
+    }
+  }
+  if (B.state === 'charge') {
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2;
+    for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(B.x + i * 7, B.y - 20); ctx.lineTo(B.x + i * 7, B.y - 60 - Math.abs(i) * 8); ctx.stroke(); }
+  }
+  person({ x: B.x, y: B.y, face: B.state === 'dizzy' ? '😵' : '👴', color: '#b33' }, { ring: GRADE.red.color, size: 25 });
+  emoji('🦯', B.x + 18, B.y + 2, 15);
+  if (B.state === 'dizzy') emoji('💫', B.x, B.y - 24, 16);
+  tag(V.name, B.x, B.y + 24, GRADE.red.color);
+}
+
+function drawBags() {
+  for (const b of G.bags) {
+    const p = clamp(b.t / b.dur, 0, 1);
+    const x = lerp(b.sx, b.ex, p), y = lerp(b.sy, b.ey, p) - Math.sin(p * Math.PI) * 70;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(b.t * 12);
+    emoji('👜', 0, 0, 22); ctx.restore();
+  }
+}
+function drawGhosts() {
+  for (const g of G.ghosts) {
+    person({ x: g.x, y: lerp(g.y, 96, g.t), face: g.face, color: g.color }, { alpha: 1 - g.t });
+  }
+}
+
+function drawHUD() {
+  ctx.fillStyle = '#1e2433'; ctx.fillRect(0, 0, W, 100);
+  // 노선
+  text('2호선 · 출근길', 12, 14, 11, '#33d17a', 'left', 900);
+  text(`매너 ${P.manner >= 0 ? '+' : ''}${P.manner}`, W - 12, 14, 11, P.manner >= 0 ? '#a8ffb0' : '#ff9a9a', 'right', 900);
+  const x0 = 20, x1 = W - 20, ly = 36;
+  ctx.strokeStyle = '#33d17a'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x0, ly); ctx.lineTo(x1, ly); ctx.stroke();
+  const cur = currentStop();
+  for (let i = 0; i <= LAST; i++) {
+    const x = lerp(x0, x1, i / LAST);
+    ctx.fillStyle = i <= cur ? '#33d17a' : '#fff';
+    ctx.beginPath(); ctx.arc(x, ly, TRANSFER.has(STATIONS[i]) ? 5.5 : 4, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#1e2433'; ctx.stroke();
+    if (SCHEDULE[i]) emoji('🚨', x, ly - 11, 9);
+  }
+  // 열차 위치
+  let pos = cur;
+  if (G.phase === 'run') pos = cur + clamp(G.t / G.runDur, 0, 1);
+  const tx = lerp(x0, x1, pos / LAST);
+  emoji('🚃', tx, ly + 12, 13);
+  // 역 이름
+  if (G.phase === 'arrive') text(`${STATIONS[G.next]} 도착 · 하차 중`, 180, 66, 17, '#ffe9a8', 'center', 900);
+  else if (G.phase === 'run') {
+    text(`다음 역: ${STATIONS[G.next]}`, 180, 64, 17, '#fff', 'center', 900);
+    // 남은 시간 바
+    const p = clamp(1 - G.t / G.runDur, 0, 1);
+    ctx.fillStyle = '#2f374a'; rr(70, 79, 220, 5, 3); ctx.fill();
+    ctx.fillStyle = '#33d17a'; rr(70, 79, 220 * p, 5, 3); ctx.fill();
+  } else text(G.winFx ? '착석 완료!' : `${STATIONS[LAST]} 도착`, 180, 66, 17, '#ffd166', 'center', 900);
+  text(`목적지 ${STATIONS[LAST]}까지 ${Math.max(0, LAST - cur)}역`, 180, 93, 9, '#9aa3b8', 'center', 700);
+
+  // 폰 정보
+  if (P.phone && G.phase !== 'end') {
+    const st = STATIONS[G.next];
+    const n = seatedList().filter(o => o.stop === G.next).length;
+    ctx.fillStyle = 'rgba(20,26,40,.92)'; rr(8, 122, 150, 38, 8); ctx.fill();
+    ctx.strokeStyle = '#7ee0ff'; ctx.lineWidth = 1.5; ctx.stroke();
+    text(`📱 ${st}${TRANSFER.has(st) ? ' · 환승역!' : ''}`, 16, 134, 10, '#7ee0ff', 'left', 900);
+    text(`이번 역 좌석 하차 예상 ${n}명`, 16, 149, 10, '#fff', 'left', 700);
+  }
+}
+
+function drawPhoneVision() {
+  if (!P.phone || G.phase === 'end') return;
+  const g = ctx.createRadialGradient(P.x, P.y, 60, P.x, P.y, 150);
+  g.addColorStop(0, 'rgba(5,8,15,0)'); g.addColorStop(1, 'rgba(5,8,15,.86)');
+  ctx.fillStyle = g; ctx.fillRect(0, 100, W, 462);
+}
+
+function drawButtons() {
+  ctx.fillStyle = '#1e2433'; ctx.fillRect(0, 562, W, H - 562);
+  const back = P.bag === 'back';
+  btn(BTN_BAG, back ? '🎒 뒤로 멤' : '🎒 앞으로 멤', back ? '비집기 빠름 · 걸림 주의!' : '느림 · 매너 상승', back ? '#c77d2e' : '#2e9c6a', P.bagSwitch > 0);
+  btn(BTN_PHONE, P.phone ? '📱 폰 보는 중' : '📱 폰 보기', P.phone ? '정보 ON · 시야 좁음' : '환승·하차 정보', P.phone ? '#2b74c7' : '#3a4256', false);
+}
+function btn(b, t1, t2, color, dim) {
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; rr(b.x, b.y + 4, b.w, b.h, 12); ctx.fill();
+  ctx.fillStyle = color; ctx.globalAlpha = dim ? .5 : 1; rr(b.x, b.y, b.w, b.h, 12); ctx.fill(); ctx.globalAlpha = 1;
+  text(t1, b.x + b.w / 2, b.y + 22, 15, '#fff', 'center', 900);
+  text(t2, b.x + b.w / 2, b.y + 42, 10, 'rgba(255,255,255,.85)', 'center', 700);
+}
+
+function drawWarning() {
+  const Wn = G.warn;
+  if (Wn && G.phase === 'run') {
+    const V = VILLAINS[Wn.type], gr = GRADE[V.grade];
+    const blink = Math.floor(G.clock * 6) % 2 === 0;
+    ctx.fillStyle = blink ? gr.color : gr.dark;
+    ctx.fillRect(0, 100, W, 48);
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    for (let x = -40 + (G.clock * 60) % 40; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 100); ctx.lineTo(x + 20, 100); ctx.lineTo(x + 40, 148); ctx.lineTo(x + 20, 148); ctx.fill(); }
+    // 실루엣
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(30, 124, 17, 0, Math.PI * 2); ctx.fill();
+    text('?', 30, 125, 18, gr.color, 'center', 900);
+    text(`⚠️ 다음 역(${STATIONS[G.next]})에서 빌런 탑승 감지!`, 56, 115, 12, '#fff', 'left', 900, '#000');
+    text(`${gr.label} · 정체를 맞혀보세요`, 56, 134, 11, '#fff', 'left', 800, '#000');
+  }
+  const C = G.cutin;
+  if (C) {
+    const V = VILLAINS[C.type], gr = GRADE[V.grade];
+    const inP = clamp(C.t / .18, 0, 1), outP = clamp((1.5 - C.t) / .2, 0, 1);
+    const a = Math.min(inP, outP);
+    const off = (1 - inP) * W;
+    ctx.save(); ctx.globalAlpha = a;
+    ctx.translate(off, 0);
+    ctx.fillStyle = 'rgba(0,0,0,.82)'; ctx.fillRect(0, 250, W, 96);
+    ctx.fillStyle = gr.color; ctx.fillRect(0, 250, W, 6); ctx.fillRect(0, 340, W, 6);
+    emoji(V.face, 54, 298, 48);
+    text(gr.label + ' 빌런 탑승!', 100, 272, 12, gr.color, 'left', 900);
+    text(V.name, 100, 296, 22, '#fff', 'left', 900);
+    text(`필살기 「${V.skill}」 — ${V.hint}`, 100, 322, 10, '#ffd9a8', 'left', 700);
+    ctx.restore();
+  }
+}
+
+function drawFloats() {
+  for (const f of G.floats) {
+    const p = f.t / f.life;
+    ctx.globalAlpha = 1 - Math.max(0, p - .6) / .4;
+    text(f.txt, f.x, f.y - p * 26, f.size, f.color, 'center', 900, 'rgba(0,0,0,.75)');
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawAnnounce() {
+  const A = G.announce; if (!A) return;
+  const a = Math.min(1, A.t * 4, (A.dur - A.t) * 3);
+  ctx.globalAlpha = clamp(a, 0, 1);
+  ctx.fillStyle = 'rgba(15,20,32,.88)'; rr(10, 512, W - 20, 30, 8); ctx.fill();
+  ctx.font = '800 11px system-ui, sans-serif';
+  text('📢 ' + A.txt, 180, 527, A.txt.length > 30 ? 10 : 11, '#ffe9a8', 'center', 800);
+  ctx.globalAlpha = 1;
+}
+
+function drawEndFx() {
+  if (G.winFx) {
+    const t = G.winFx.t;
+    const s = t < .3 ? lerp(3, 1, t / .3) : 1 + .04 * Math.sin(t * 8);
+    ctx.fillStyle = `rgba(255,209,102,${Math.max(0, .35 - t * .3)})`; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.translate(180, 300); ctx.scale(s, s);
+    text('착석!', 0, 0, 64, '#fff', 'center', 900, '#c2410c');
+    ctx.restore();
+    for (let i = 0; i < 14; i++) {
+      const ang = i / 14 * Math.PI * 2, d = 40 + t * 160;
+      emoji(['✨', '🎉', '⭐'][i % 3], 180 + Math.cos(ang) * d, 300 + Math.sin(ang) * d, 18);
+    }
+  }
+  if (G.failFx) {
+    ctx.fillStyle = `rgba(0,0,0,${Math.min(.5, G.failFx.t * .5)})`; ctx.fillRect(0, 0, W, H);
+    text('회사 도착…', 180, 300, 40, '#fff', 'center', 900, '#000');
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  if (G.shake > 0) ctx.translate(rand(-1, 1) * G.shake * 14, rand(-1, 1) * G.shake * 14);
+  drawCar();
+  drawGhosts();
+  drawSeats();
+  drawPeople();
+  drawBoss();
+  drawBags();
+  drawPhoneVision();
+  drawFloats();
+  ctx.restore();
+  drawHUD();
+  drawWarning();
+  drawAnnounce();
+  drawButtons();
+  drawEndFx();
+}
+
+// ───────────────────────── 루프 ─────────────────────────
+let last = 0, running = false;
+function loop(ts) {
+  const dt = Math.min(.05, (ts - last) / 1000 || 0); last = ts;
+  if (G) { update(dt); draw(); }
+  requestAnimationFrame(loop);
+}
+function start() {
+  audio();
+  document.getElementById('startScreen').classList.remove('show');
+  document.getElementById('endScreen').classList.remove('show');
+  newGame();
+  if (!running) { running = true; requestAnimationFrame(t => { last = t; loop(t); }); }
+}
+document.getElementById('startBtn').addEventListener('click', start);
+document.getElementById('againBtn').addEventListener('click', start);
+
+// 시작 화면 뒤 배경으로 한 번 그려두기
+newGame(); draw(); G = null;
+window.__game = { get G() { return G; }, get P() { return P; }, get seats() { return seats; }, get grid() { return grid; } };
+})();
+</script>
+</body>
+</html>
