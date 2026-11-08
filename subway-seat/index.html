@@ -89,7 +89,7 @@
   #cutin small { display: block; font-size: 13px; font-weight: 900; }
   #cutin b { display: block; font-size: 24px; }
   #cutin span { display: block; font-size: 12px; color: #ffd9a8; margin-top: 2px; }
-  #announce { position: absolute; left: 10px; right: 10px; bottom: 182px; text-align: center; padding: 8px 10px; border-radius: 10px; background: rgba(15,20,32,.88); color: #ffe9a8; font-size: 12.5px; font-weight: 800; display: none; }
+  #announce { position: absolute; left: 10px; right: 10px; bottom: 146px; text-align: center; padding: 8px 10px; border-radius: 10px; background: rgba(15,20,32,.88); color: #ffe9a8; font-size: 12.5px; font-weight: 800; display: none; }
 
   #vision { position: absolute; inset: 0; display: none; }
   #floats > div { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; font-weight: 900; text-shadow: 0 0 3px #000, 0 0 3px #000, 0 1px 2px #000; }
@@ -151,18 +151,18 @@
   /* 조작 */
   #controls { position: absolute; left: 0; right: 0; bottom: 0; height: 170px; pointer-events: none; }
   #joyZone { position: absolute; left: 0; bottom: 0; width: 55%; height: 100%; pointer-events: auto; }
-  #joyBase { position: absolute; width: 124px; height: 124px; border-radius: 50%; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.35); left: 26px; bottom: 26px; }
-  #joyKnob { position: absolute; width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,.85); left: 34px; top: 34px; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
-  .btns { position: absolute; right: 14px; bottom: 22px; display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; gap: 10px; align-items: end; pointer-events: auto; }
+  #joyBase { position: absolute; width: 92px; height: 92px; border-radius: 50%; background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.35); left: 18px; bottom: 18px; }
+  #joyKnob { position: absolute; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.85); left: 24px; top: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+  .btns { position: absolute; right: 10px; bottom: 16px; display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; gap: 6px; align-items: end; pointer-events: auto; }
   .b { border: 0; border-radius: 18px; color: #fff; font-family: inherit; font-weight: 900; box-shadow: 0 4px 0 rgba(0,0,0,.35); cursor: pointer; padding: 0; }
   .b:active, .b.press { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
-  .b small { display: block; font-size: 9.5px; font-weight: 700; opacity: .85; margin-top: 2px; }
-  #btnAct { grid-column: 2; grid-row: 1 / span 3; width: 92px; height: 92px; border-radius: 50%; background: #3a4256; font-size: 15px; line-height: 1.15; }
+  .b small { display: block; font-size: 8.5px; font-weight: 700; opacity: .85; margin-top: 1px; }
+  #btnAct { grid-column: 2; grid-row: 1 / span 3; width: 72px; height: 72px; border-radius: 50%; background: #3a4256; font-size: 12.5px; line-height: 1.1; }
   #btnAct.ready { background: #1fa85a; box-shadow: 0 4px 0 #137a40, 0 0 18px rgba(62,224,138,.6); }
   #btnAct.cough { background: #c9a400; box-shadow: 0 4px 0 #806800; }
   #btnAct.mash { background: #d23b3b; box-shadow: 0 4px 0 #8a1f1f; animation: shake .15s infinite; }
   @keyframes shake { 0%,100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
-  #btnBag, #btnPhone, #btnEar { width: 88px; height: 36px; font-size: 12.5px; }
+  #btnBag, #btnPhone, #btnEar { width: 68px; height: 30px; font-size: 11px; border-radius: 12px; }
   #btnEar { background: #3a4256; } #btnEar.on { background: #6a4ac7; }
   #btnBag { background: #c77d2e; } #btnBag.front { background: #2e9c6a; }
   #btnPhone { background: #3a4256; } #btnPhone.on { background: #2b74c7; }
@@ -1165,12 +1165,12 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
-const joyBase = $('joyBase'), joyKnob = $('joyKnob'), JR = 52;
+const joyBase = $('joyBase'), joyKnob = $('joyKnob'), JR = 38;
 $('joyZone').addEventListener('pointerdown', e => {
   e.preventDefault(); audio();
   joy.id = e.pointerId; $('joyZone').setPointerCapture(e.pointerId);
   const r = $('controls').getBoundingClientRect();
-  joyBase.style.left = (e.clientX - r.left - 62) + 'px'; joyBase.style.bottom = 'auto'; joyBase.style.top = (e.clientY - r.top - 62) + 'px';
+  joyBase.style.left = (e.clientX - r.left - 46) + 'px'; joyBase.style.bottom = 'auto'; joyBase.style.top = (e.clientY - r.top - 46) + 'px';
   joy.ox = e.clientX; joy.oy = e.clientY; joy.x = joy.y = 0; setKnob();
 });
 $('joyZone').addEventListener('pointermove', e => {
@@ -1179,7 +1179,7 @@ $('joyZone').addEventListener('pointermove', e => {
   if (d > JR) { dx *= JR / d; dy *= JR / d; }
   joy.x = dx / JR; joy.y = dy / JR; setKnob();
 });
-const joyEnd = e => { if (e.pointerId !== joy.id) return; joy.id = null; joy.x = joy.y = 0; setKnob(); joyBase.style.left = '26px'; joyBase.style.top = 'auto'; joyBase.style.bottom = '26px'; };
+const joyEnd = e => { if (e.pointerId !== joy.id) return; joy.id = null; joy.x = joy.y = 0; setKnob(); joyBase.style.left = '18px'; joyBase.style.top = 'auto'; joyBase.style.bottom = '18px'; };
 $('joyZone').addEventListener('pointerup', joyEnd); $('joyZone').addEventListener('pointercancel', joyEnd);
 function setKnob() { joyKnob.style.transform = `translate(${joy.x * JR}px, ${joy.y * JR}px)`; }
 function readInput() {
