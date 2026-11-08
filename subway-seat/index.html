@@ -249,8 +249,8 @@
   <table>
     <tr><td>🔙</td><td><b>뒤로 메기</b>: 비집기 빠름, 대신 <b>40% 확률로 가방이 걸림</b> → 행동 버튼 연타로 빼기. 개찰구에선 카드 꺼내려면 <b>가방 뒤지기 연타</b></td></tr>
     <tr><td>🔜</td><td><b>앞으로 메기</b>: 비집기 느림, 걸리지 않음 · 매너↑ → 길이 잘 열림</td></tr>
-    <tr><td>📱</td><td><b>폰 집중</b>(F): 불쾌지수가 <b>멈춤</b> + 환승·하차 정보. 대신 시야가 좁고 걸음이 느림</td></tr>
-    <tr><td>🎧</td><td><b>이어폰</b>(R): 불쾌지수 65% 덜 오름(노캔 이어폰이 있으면 멈춤). 대신 <b>안내방송·빌런 경보가 안 들림</b></td></tr>
+    <tr><td>📱</td><td><b>폰 집중</b>(F): 불쾌지수가 <b>천천히</b> 오름 + 환승·하차 정보. 대신 시야가 좁고 걸음이 느림</td></tr>
+    <tr><td>🎧</td><td><b>이어폰</b>(R): 불쾌지수 절반만 오름(노캔 이어폰이면 더 느리게). 대신 <b>안내방송·빌런 경보가 안 들림</b></td></tr>
   </table>
   <h2>🚨 빌런 경보</h2>
   <table>
@@ -1166,7 +1166,7 @@ function toggleBag() {
 function togglePhone() {
   if (!G || G.phase === 'end') return;
   P.phone = !P.phone; P.parts.phone.visible = P.phone; SFX.pop();
-  float(P.phone ? '📱 폰 집중 모드: 불쾌지수 멈춤 · 시야 좁고 느림' : '📱 폰 집중 해제', { x: P.x, y: 2.3, z: P.z }, '#9fe8ff', 13, 1.6);
+  float(P.phone ? '📱 폰 집중 모드: 불쾌지수 천천히 오름 · 시야 좁고 느림' : '📱 폰 집중 해제', { x: P.x, y: 2.3, z: P.z }, '#9fe8ff', 13, 1.6);
 }
 // 오버이어 헤드셋: 머리 위로 넘어가는 밴드 + 양쪽 귀 덮개
 function makeHeadset(head, color = '#222') {
@@ -1187,7 +1187,7 @@ function toggleEar() {
   if (P.headset) { P.headset.parent && P.headset.parent.remove(P.headset); P.headset = null; }
   if (P.earMode) P.headset = makeHeadset(P.parts.head, P.ear ? '#7a5cff' : '#222');
   if (P.earMode) { stopVoice(); $('announce').style.display = 'none'; $('warn').classList.remove('show'); }
-  float(P.earMode ? (P.ear ? '🎧 노캔 이어폰 모드: 불쾌지수 멈춤 · 방송·경보 안 들림' : '🎧 이어폰 모드: 불쾌지수 덜 오름 · 방송·경보 안 들림') : '🎧 이어폰 뺌', { x: P.x, y: 2.3, z: P.z }, '#c8b0ff', 13, 1.8);
+  float(P.earMode ? (P.ear ? '🎧 노캔 이어폰 모드: 불쾌지수 아주 느리게 오름 · 방송·경보 안 들림' : '🎧 이어폰 모드: 불쾌지수 덜 오름 · 방송·경보 안 들림') : '🎧 이어폰 뺌', { x: P.x, y: 2.3, z: P.z }, '#c8b0ff', 13, 1.8);
 }
 function nearSeat() {
   let best = null, bd = .65;
@@ -1318,9 +1318,9 @@ function updatePlayer(dt) {
         const px = -dz, pz = dx; const side = Math.sign((pushing.x - P.x) * px + (pushing.z - P.z) * pz) || 1;
         pushing.x += px * side * .3; pushing.z += pz * side * .3; clampIn(pushing);
         const sq = P.bag === 'front' ? 5 : 8;
-        addDisc(sq);
+        const sqGot = Math.max(1, Math.round(addDisc(sq)));
         annoy(pushing, P.bag === 'front' ? 8 : 15);
-        float(`😣 불쾌지수 +${sq}`, { x: P.x, y: 2.45, z: P.z }, '#ffb36b', 12, 1.1);
+        float(`😣 불쾌지수 +${sqGot}`, { x: P.x, y: 2.45, z: P.z }, '#ffb36b', 12, 1.1);
         onSqueezePass(pushing);
         if (P.bag === 'front') { P.manner += 2; float('실례합니다 🙏', { x: P.x, y: 2, z: P.z }, '#a8ffb0', 13, 1); }
         else float('슥-', { x: P.x, y: 2, z: P.z }, '#fff', 13, .7);
@@ -1637,7 +1637,7 @@ function drawCommonHUD() {
   $('btnBag').className = 'b' + (P.bag === 'front' ? ' front' : '');
   $('btnBag').innerHTML = P.bagSwitch > 0 ? '🎒 메는 중…' : (P.bag === 'back' ? '🎒 뒤로<small>걸음↑·걸림주의</small>' : '🎒 앞으로<small>느림·매너↑</small>');
   $('btnPhone').className = 'b' + (P.phone ? ' on' : '');
-  $('btnPhone').innerHTML = P.phone ? '📱 집중 중<small>불쾌지수 멈춤</small>' : '📱 폰<small>집중·시야↓</small>';
+  $('btnPhone').innerHTML = P.phone ? '📱 집중 중<small>불쾌지수 천천히↑</small>' : '📱 폰<small>집중·시야↓</small>';
   $('btnEar').className = 'b' + (P.earMode ? ' on' : '');
   $('btnEar').innerHTML = P.earMode ? '🎧 듣는 중<small>방송 안 들림</small>' : '🎧 이어폰<small>불쾌지수↓</small>';
   // 게이지
@@ -2236,23 +2236,25 @@ const MONO = [
 // 내 자리·내 순서를 빼앗김 → 불쾌지수 상승 + 속마음
 function robbed(v, txt) {
   if (!P || P.seated || !G || G.phase === 'end') return;
-  addDisc(v);
-  float(`💢 ${txt} (불쾌지수 +${v})`, { x: P.x, y: 2.5, z: P.z }, '#ff7a7a', 15, 1.8);
+  const got = Math.max(1, Math.round(addDisc(v)));
+  float(`💢 ${txt} (불쾌지수 +${got})`, { x: P.x, y: 2.5, z: P.z }, '#ff7a7a', 15, 1.8);
   G.shake = Math.max(G.shake, .15);
 }
 // 그 좌석을 노리고 있었나? (좌석 앞 가까이)
 const eyeing = s => dist(P, front(s)) < 1.6;
 function addDisc(v) {
-  if (!P || G.phase === 'end' || P.seated) return;
+  if (!P || G.phase === 'end' || P.seated) return 0;
   if (v > 0) v *= (P.ear ? .75 : 1) * (P.caffeine ? .85 : 1);
-  if (v > 0 && P.phone) v = 0;                                   // 📱 폰 집중: 불쾌지수 멈춤
-  if (v > 0 && P.earMode) v *= P.ear ? 0 : .35;                  // 🎧 이어폰: 크게 줄어듦 (노캔이면 멈춤)
+  // 📱·🎧 써도 서 있는 한 불쾌지수는 느리게나마 계속 오름
+  if (v > 0) v *= Math.max(.2, (P.phone ? .35 : 1) * (P.earMode ? (P.ear ? .35 : .5) : 1));
+  const before = P.disc || 0;
   P.disc = clamp((P.disc || 0) + v, 0, 100);
   const lvl = MONO.filter(m => P.disc >= m[0]).length;
   const cur = P.discLvl || 0;
   if (lvl > cur) { P.discLvl = lvl; float('💭 ' + pick(MONO[lvl - 1][1]), { x: P.x, y: 2.5, z: P.z }, lvl >= 3 ? '#ff8a8a' : '#e8ecff', 14, 1.8); }
   else if (lvl < cur && P.disc < MONO[cur - 1][0] - 15) P.discLvl = lvl;
   if (P.disc >= 100) collapse();
+  return P.disc - before;
 }
 function calm(v) { if (P) P.disc = clamp((P.disc || 0) - v, 0, 100); }
 function updateDisc(dt) {
@@ -2270,8 +2272,9 @@ function updateDisc(dt) {
   updateNpcDisc(dt, touching);
   P.touch = touch; P.touchNear = near;
   P.worst = 0; for (const n of touching) P.worst = Math.max(P.worst, n.disc || 0);
-  let rate = touch ? Math.min(touch, 3) * 1.25 * LINE.disc * qMul : (G.stage === 2 ? 0 : -5);
-  if (G.stage === 2) rate += .7 * LINE.disc;      // 서서 가는 것 자체가 피곤함
+  // 출근길은 서 있는 내내 불쾌지수가 오름 (떨어지는 건 앉기·아이템·참교육뿐)
+  let rate = (G.stage === 2 ? .7 : .35) * LINE.disc;
+  if (touch) rate += Math.min(touch, 3) * 1.25 * LINE.disc * qMul;
   if (P.stuck) rate += 4;
   addDisc(rate * dt);
 }
@@ -2753,20 +2756,21 @@ function updateCutter(dt) {
     $('warn').classList.remove('show');
     const p = new Person({ kind: 'villain', vtype: 'cutter', look: { coat: '#6a4a2a', pants: '#222', hair: '#1b1b1b', shades: true }, x: rand(-2, 2), z: 5.6, rot: Math.PI, label: VILLAINS.cutter.name, labelColor: GRADE.orange.color, speed: 2.4 });
     p.state = 'board';
-    G.cutter = { p, coughs: 0, coughT: 0, done: false, inLine: false };
+    const CL = qlines.length ? qlines[Math.floor(Math.random() * qlines.length)] : shortestLine();   // 매판 진짜 랜덤 (내 줄 포함 동일 확률)
+    G.cutter = { p, coughs: 0, coughT: 0, done: false, inLine: false, L: CL, at: Math.floor(Math.random() * 3) };
     showCutin('cutter', '빌런 출현!');
   }
   const C = G.cutter; if (!C || C.done) return;
   const p = C.p;
   if (!C.inLine) {
-    const L = P.qLine || shortestLine();
-    const at = P.qLine ? Math.max(0, playerQueueIdx()) : Math.min(1, L.q.length);
+    const L = C.L || shortestLine();
+    const at = Math.min(C.at, L.q.length);
     const sp = slotPos(L, at);
     p.target = sp; p.onArrive = null;
     if (Math.hypot(p.x - sp.x, p.z - sp.z) < .5) {
       C.inLine = true; joinQueue(p, L, at); p.state = 'queue';
       float('잠깐만 끼어들게요~ 😏', { x: p.x, y: 2.3, z: p.z }, '#ffb347', 15, 1.6);
-      if (P.qLine === L) robbed(15, '앗… 내 앞에 끼어들다니?!');
+      if (P.qLine === L && L.q.indexOf(p) < L.q.indexOf(P)) robbed(15, '앗… 내 앞에 끼어들다니?!');
       for (const q of L.q) if (q !== p && q.kind === 'npc') q.mood = 1.5;
     }
   } else if (C.coughs > 0) { C.coughT += dt; if (C.coughT > 2.5) { C.coughs = 0; C.coughT = 0; } }
