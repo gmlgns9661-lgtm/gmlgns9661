@@ -652,7 +652,7 @@ class Person {
     this.sync(1);
     people.push(this);
   }
-  solid() { return !this.sitting && this.state !== 'leave' && this.state !== 'board' && this.state !== 'toSeat' && this.kind !== 'player' && this.state !== 'charge'; }
+  solid() { return !this.sitting && this.state !== 'leave' && this.state !== 'board' && this.state !== 'toSeat' && this.state !== 'toQueue' && this.kind !== 'player' && this.state !== 'charge'; }
   remove() { scene.remove(this.parts.g); people = people.filter(p => p !== this); }
   setSit(on, side, spread = false) {
     this.sitting = on; this.spread = spread;
@@ -762,7 +762,7 @@ function clearWorld() {
 }
 
 function newGame(carry = null) {
-  clearWorld();
+  clearWorld(); clearTailMarks();
   stationGroup.visible = false; platformGroup.visible = false; carGroup.visible = true; laneMesh.visible = true; lane2.material.opacity = 0;
   for (const w of windows) w.material = windowMat;
   seats = [0, 1].map(side => Array.from({ length: SEATS }, (_, i) => ({ side, i, z: seatZ(i), occ: null, blocked: false, bagIncoming: false, claimAt: null, reservedBy: null })));
@@ -1704,7 +1704,7 @@ function chooseGate() {
   let best = null, bc = 1e9;
   for (const g of gates) {
     if (g.blockedBy) continue;
-    const c = g.L.q.length + (g.busy ? 1 : 0) + rnd() * .8;
+    const c = g.L.q.length + pendingCount(g.L) + (g.busy ? 1 : 0) + rnd() * .8;
     if (c < bc) { bc = c; best = g; }
   }
   return best || gates[2];
@@ -1716,8 +1716,9 @@ function spawnFlow(z = 6.2) {
 }
 function sendToGate(n) {
   const g = chooseGate(); n.gate = g;
-  joinQueue(n, g.L); n.state = 'queue';
+  n.pendingL = g.L; n.state = 'toQueue';        // 줄 끝 원에 도착하면 그때 합류
 }
+const pendingCount = L => people.reduce((a, p) => a + (p.pendingL === L ? 1 : 0), 0);
 
 function updateGates(dt) {
   for (const g of gates) {
@@ -1881,6 +1882,7 @@ function updateStage1Villains(dt) {
     const p = new Person({ kind: 'villain', vtype: 'gate', look: { coat: '#7a4a8a', pants: '#3b3b44', hair: '#2b2420', longHair: true, handbag: true }, x: g.gx, z: 3.5, label: VILLAINS.gate.name, labelColor: GRADE.orange.color, speed: 2.4 });
     g.blockedBy = p; g.busy = p;
     for (const n of [...g.L.q]) if (n !== P && n.kind === 'npc') { leaveQueue(n); sendToGate(n); }
+    for (const n of people) if (n.pendingL === g.L) sendToGate(n);
     p.goTo(g.gx, GATE_Z + .7, 'board', () => { p.state = 'stand'; p.rot = Math.PI; });
     G.gateV = { p, gate: g, coughs: 0, coughT: 0, done: false, msgT: 1.5, t0: t };
     showCutin('gate', '빌런 출현!');
@@ -1968,6 +1970,7 @@ function updateStage1(dt) {
       }
     }
     syncQueueNpcs(gateLines);
+    updateTailMarks(gateLines);
     playerQueue(gateLines, dt);
     updateGates(dt);
     updateTapGame(dt);
@@ -2472,7 +2475,9 @@ function enterPlatform() {
   }, 700);
 }
 function shortestLine(exclude) {
-  let best = null; for (const L of qlines) { if (L === exclude) continue; if (!best || L.q.length + rnd() * .9 < best.q.length) best = L; } return best;
+  let best = null, bl = 1e9;
+  for (const L of qlines) { if (L === exclude) continue; const n = L.q.length + pendingCount(L) + rnd() * .9; if (n < bl) { bl = n; best = L; } }
+  return best;
 }
 function joinQueue(p, L, idx = L.q.length) {
   const pi = P && P.qLine === L ? L.q.indexOf(P) : -1;
@@ -2499,7 +2504,7 @@ function nearTail(lines) {
   let best = null, bd = 1.6;
   for (const L of lines) {
     if (L.gate && (L.gate.blockedBy || L.gate.openFor === P)) continue;
-    for (let k = 0; k <= L.q.length; k++) { const t = slotPos(L, k); const d = Math.hypot(P.x - t.x, P.z - t.z) + (k < L.q.length ? .15 : 0); if (d < bd) { bd = d; best = L; } }
+    for (let k = 0; k <= L.q.length; k++) { const t = k === L.q.length ? tailPos(L) : slotPos(L, k); const d = Math.hypot(P.x - t.x, P.z - t.z) + (k < L.q.length ? .15 : 0); if (d < bd) { bd = d; best = L; } }
   }
   return best;
 }
@@ -2519,10 +2524,11 @@ function updatePlatform(dt) {
       G.plSpawnT = rand(.8, 1.5) * 16 / LINE.crowd;
       const L = shortestLine();
       const p = new Person({ look: npcLook(), x: rand(-2.5, 2.5), z: 5.6, rot: Math.PI, speed: 1.8 });
-      joinQueue(p, L); p.state = 'queue';
+      p.pendingL = L; p.state = 'toQueue';
     }
   }
   syncQueueNpcs(qlines);
+  updateTailMarks(qlines);
   playerQueue(qlines, dt, () => {
     if (G.timeLeft > 14 && !G.warned.dep) { G.warned.dep = 1; G.timeLeft = 14; const t = `전 역에서 ${STATIONS[LAST]} 방면 열차가 출발하였습니다.`; announce(t, 3); speak(t, { interrupt: true }); }
   });
@@ -2758,7 +2764,53 @@ function pregnantSeatFail(s) {
 
 // ═════════════════════════ 줄서기 공통 (개찰구 · 승강장) ═════════════════════════
 let gateLines = [];
+function tailPos(L) {
+  const pi = P.qLine === L ? L.q.indexOf(P) : -1;
+  const j = L.q.length;
+  return slotPos(L, pi >= 0 ? (P.slot ?? pi) + (j - pi) : j);
+}
+let tailMarks = [];
+function clearTailMarks() { for (const m of tailMarks) scene.remove(m.ring, m.sp); tailMarks = []; }
+function updateTailMarks(lines) {
+  if (tailMarks.length !== lines.length || (tailMarks[0] && tailMarks[0].L !== lines[0])) {
+    clearTailMarks();
+    for (const L of lines) {
+      const ring = new THREE.Mesh(new THREE.RingGeometry(.4, .56, 36), new THREE.MeshBasicMaterial({ color: '#ffd23f', transparent: true, opacity: .4, depthWrite: false }));
+      ring.rotation.x = -Math.PI / 2; scene.add(ring);
+      const sp = makeSprite(labelTex('🧍 여기 줄 서기', '#3ee08a'), 1.1, .25); scene.add(sp);
+      tailMarks.push({ L, ring, sp });
+    }
+  }
+  const show = !P.qLine && !P.boardedTrain && G.phase !== 'end' && !readerGate();
+  let near = null, nd = 2.8;
+  for (const m of tailMarks) {
+    m.t = tailPos(m.L);
+    const blocked = m.L.gate && (m.L.gate.blockedBy || m.L.gate.openFor === P);
+    const d = Math.hypot(P.x - m.t.x, P.z - m.t.z);
+    if (!blocked && d < nd) { nd = d; near = m; }
+    m.blocked = blocked;
+  }
+  const k = .5 + .5 * Math.sin(G.clock * 8);
+  for (const m of tailMarks) {
+    const hot = m === near;
+    m.ring.visible = show && !m.blocked;
+    m.ring.position.set(m.t.x, .026, m.t.z);
+    m.ring.material.color.set(hot ? '#3ee08a' : '#ffd23f');
+    m.ring.material.opacity = hot ? .55 + .45 * k : .3;
+    m.ring.scale.setScalar(hot ? 1 + .15 * k : 1);
+    m.sp.visible = show && hot;
+    m.sp.position.set(m.t.x, 1.05 + k * .08, m.t.z);
+  }
+}
 function syncQueueNpcs(lines) {
+  // 줄 끝 원으로 걸어오는 사람: 원에 닿는 순간 합류 (그 전에 내가 들어가면 내가 앞)
+  for (const p of people) {
+    const L = p.pendingL; if (!L || !lines.includes(L)) continue;
+    if (L.gate && L.gate.blockedBy) { sendToGate(p); continue; }
+    const t = tailPos(L);
+    if (Math.hypot(p.x - t.x, p.z - t.z) < .45) { p.pendingL = null; joinQueue(p, L); p.state = 'queue'; }
+    else { if (!p.target || Math.hypot(p.target.x - t.x, p.target.z - t.z) > .05) { p.target = { x: t.x, z: t.z }; p.onArrive = null; } p.state = 'toQueue'; p.speed = Math.max(p.speed, 1.6); }
+  }
   for (const L of lines) {
     const pi = P.qLine === L ? L.q.indexOf(P) : -1;
     L.q.forEach((p, i) => {
@@ -2779,8 +2831,8 @@ function playerQueue(lines, dt, onJoin) {
     if (P.boardedTrain) return;
     for (const L of lines) {
       if (L.gate && (L.gate.blockedBy || L.gate.openFor === P)) continue;
-      const tail = slotPos(L, L.q.length);
-      if (Math.hypot(P.x - tail.x, P.z - tail.z) < .7) {
+      const tail = tailPos(L);
+      if (Math.hypot(P.x - tail.x, P.z - tail.z) < .75) {
         joinQueue(P, L); SFX.pop();
         if (onJoin) onJoin(L);
         float(L.gate ? `줄 섰다! ${L.q.length}번째` : `줄 섰다! ${L.q.length}번째 (${L.d + 2}-${L.d + 1} 문)`, { x: P.x, y: 2.3, z: P.z }, '#ffe066', 14, 1.6);
