@@ -38,9 +38,16 @@
   #discNum { min-width: 22px; text-align: right; }
   #buffs { font-size: 11px; color: #c8cfe0; min-width: 0; white-space: nowrap; }
   #rage { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 90px 40px rgba(255,0,0,.65); opacity: 0; }
-  .lcard { display: block; width: 100%; max-width: 400px; margin: 6px auto; padding: 12px 14px; text-align: left; border: 0; border-left: 7px solid var(--lc); border-radius: 12px; background: #1e2433; color: #fff; font-family: inherit; cursor: pointer; }
+  .lcard { display: block; width: 100%; max-width: 400px; margin: 5px auto; padding: 8px 10px; text-align: left; border: 0; border-left: 7px solid var(--lc); border-radius: 12px; background: #1e2433; color: #fff; font-family: inherit; cursor: pointer; }
   .lcard:hover, .lcard:focus-visible { background: #273049; outline: 2px solid var(--lc); }
-  .lhead { display: flex; align-items: center; gap: 8px; font-size: 17px; }
+  .lhead { display: flex; align-items: center; gap: 7px; font-size: 15px; white-space: nowrap; }
+  .lhead .lroute { font-size: 12px; color: #c8cede; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+  .ltag { margin-left: auto; font-size: 10.5px; padding: 2px 7px; border-radius: 999px; background: var(--lc); color: #fff; font-weight: 900; }
+  .lh1 { font-size: 21px !important; margin: 0 0 4px !important; }
+  .dnote { font-size: 11px !important; margin: 4px 0 0 !important; }
+  table.sum td { font-size: 13.5px; padding: 5px 4px; }
+  details.more { width: 100%; max-width: 440px; margin-top: 8px; text-align: left; }
+  details.more summary { cursor: pointer; color: #9aa3b8; font-size: 13px; text-align: center; padding: 6px; }
   .lbadge { width: 26px; height: 26px; border-radius: 50%; background: var(--lc); display: grid; place-items: center; font-size: 14px; font-weight: 900; }
   .lstars { margin-left: auto; color: #ffd166; font-size: 14px; }
   .lroute { font-size: 12.5px; color: #c8cfe0; margin-top: 4px; }
@@ -48,23 +55,24 @@
   .ltags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
   .ltags span { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #2f374a; color: #d8dbe6; }
   .ltags span:first-child { background: var(--lc); color: #fff; font-weight: 900; }
-  .daily { width: 100%; max-width: 400px; background: #1e2433; border-radius: 12px; padding: 10px 12px; margin: 6px 0 4px; text-align: left; }
+  .daily { width: 100%; max-width: 400px; background: #1e2433; border-radius: 12px; padding: 7px 10px; margin: 2px 0 4px; text-align: left; }
   .drow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: space-between; }
-  .daily input#nickInput, .nickrow input { flex: 1; min-width: 0; max-width: 170px; padding: 7px 10px; border-radius: 8px; border: 1px solid #3a4256; background: #141822; color: #fff; font: inherit; font-size: 14px; }
+  .daily input#nickInput, .nickrow input { flex: 1; min-width: 0; max-width: 200px; padding: 7px 10px; border-radius: 8px; border: 1px solid #3a4256; background: #141822; color: #fff; font: inherit; font-size: 14px; }
   .tog { font-size: 12.5px; color: #d8dbe6; display: flex; align-items: center; gap: 4px; }
   .rbtn { border: 0; border-radius: 999px; padding: 6px 12px; background: #ffd166; color: #3a2a00; font: 900 13px inherit; font-family: inherit; cursor: pointer; }
-  .rcard { width: 100%; max-width: 400px; margin: 6px auto; padding: 12px 14px; text-align: left; border-left: 7px solid #7a5cff; border-radius: 12px; background: #232a40; }
+  .rcard { width: 100%; max-width: 400px; margin: 5px auto; padding: 8px 10px; text-align: left; border-left: 7px solid #7a5cff; border-radius: 12px; background: #232a40; }
   .rform { display: flex; gap: 6px; align-items: center; margin-top: 7px; }
   .rform select { flex: 1; min-width: 0; padding: 8px; border-radius: 8px; border: 1px solid #3a4256; background: #141822; color: #fff; font: inherit; font-size: 14px; }
-  .rform input { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 8px; border: 1px solid #3a4256; background: #141822; color: #fff; font: inherit; font-size: 15px; }
+  .rform input { flex: 1; min-width: 0; padding: 7px 9px; border-radius: 8px; border: 1px solid #3a4256; background: #141822; color: #fff; font: inherit; font-size: 15px; }
   .rlegs { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
   .leg { font-size: 12.5px; padding: 4px 8px; border-radius: 8px; background: #141822; border-left: 5px solid var(--lc); color: #e8ecff; }
   .rswap { border: 0; border-radius: 8px; background: #3a4256; color: #fff; font-size: 16px; padding: 6px 10px; cursor: pointer; }
-  .rcard .rbtn { margin-top: 8px; width: 100%; padding: 10px; font-size: 15px; }
+  .rcard .rbtn { margin-top: 6px; width: 100%; padding: 8px; font-size: 14px; }
   .rcard .rbtn:disabled { opacity: .45; cursor: not-allowed; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   select { -webkit-user-select: auto; user-select: auto; touch-action: auto; }
-  .ltop { font-size: 11.5px; color: #ffd166; margin-top: 6px; min-height: 1em; }
+  .ltop { font-size: 11px; color: #ffd166; margin-top: 3px; }
+  .ltop:empty { display: none; }
   #endBoard { width: 100%; max-width: 640px; margin-top: 6px; }
   .board { margin-top: 4px; }
   .board tr.me td { color: #ffd166; font-weight: 900; }
@@ -249,7 +257,15 @@
 
 <div class="overlay show" id="startScreen">
   <h1>🚇 출근길 자리전쟁 3D</h1>
-  <p class="sub">4개 노선 · 개찰구 → 자리 쟁탈 · 출근길 2스테이지</p>
+  <p class="sub">출근길 지하철에서 자리를 쟁취하라!</p>
+  <table class="sum">
+    <tr><td>🎯</td><td>개찰구 통과 → 줄 서서 열차 타기 → <b>자리에 앉기</b> → 도착역에서 <b>문 앞에서 내리기</b></td></tr>
+    <tr><td>🕹️</td><td>폰: 조이스틱 + <b>행동</b> 버튼 · PC: WASD + <b>Space</b> (ESC 일시정지)</td></tr>
+    <tr><td>🪑</td><td>빈자리 앞에서 행동 = 앉기 · <b>👖🔒🧥</b> 신호 = 곧 일어날 사람</td></tr>
+    <tr><td>🔨</td><td>빌런 옆에서 행동 = <b>뿅망치</b> · 빨간 줄·원은 피하기</td></tr>
+    <tr><td>😤</td><td>불쾌지수 <b>100이면 쓰러짐</b> · 앉으면 −30 · 🤰분홍 배려석은 앉으면 실패</td></tr>
+  </table>
+  <details class="more"><summary>자세한 설명 보기</summary>
   <h2>스테이지</h2>
   <table>
     <tr><td>1️⃣</td><td><b>개찰구 → 승강장</b>: 카드 찍고 계단 내려가서 <b>스크린도어 앞 줄서기</b>. 열차가 꽉 차서 <b>못 타면 지각 = 실패</b>. 앞쪽으로 탈수록 2스테이지를 객차 안쪽에서 시작</td></tr>
@@ -305,6 +321,7 @@
     <tr><td>📉</td><td>아무와도 안 닿으면 천천히 내려감 · <b>빌런 참교육 성공 시 -15</b> · 📱폰 보기 중엔 덜 오름</td></tr>
     <tr><td>☕</td><td>대합실 아이템: ☕ 커피(-30) · 🎧 노캔 이어폰(볼륨 빌런 무효) · 🍬 목캔디(-15)</td></tr>
   </table>
+  </details>
   <button class="go" id="startBtn">노선 고르기 ▶</button>
   <p class="sub" style="margin-top:10px">소리가 납니다 🔊</p>
 </div>
@@ -337,34 +354,28 @@
   <div><button class="go" id="againBtn">같은 노선 다시 ↻</button><button class="go go2" id="lineBtn">노선 바꾸기</button></div>
 </div>
 <div class="overlay" id="lineScreen">
-  <h1>🚇 오늘의 출근 노선</h1>
-  <p class="sub" style="margin:4px 0 2px">🚇 노선을 골라 바로 출발</p>
+  <h1 class="lh1">🚇 오늘의 출근 노선</h1>
+  <div class="daily">
+    <div class="drow">
+      <label for="nickInput" class="sub">👤</label><input id="nickInput" maxlength="12" placeholder="닉네임" autocomplete="off">
+      <label class="tog"><input type="checkbox" id="dailyToggle" checked> 랭킹</label>
+      <button class="rbtn" id="rankBtn">🏆</button>
+    </div>
+    <p class="sub dnote"><span id="dayLabel"></span> · <span id="streakLabel"></span> <span id="rankNote"></span></p>
+  </div>
   <div id="lineCards" style="width:100%"></div>
-  <p class="sub" style="margin:10px 0 2px">또는 내 실제 출근길로</p>
   <div class="rcard" id="routeCard">
     <div class="lhead"><span class="lbadge" style="background:#7a5cff">🗺️</span><b>내 출근길</b><span class="lstars">환승 자동</span></div>
-    <p class="ldesc">출발역·도착역만 입력하면 수도권 전 노선에서 실제 경로(환승 포함)를 찾아 그대로 플레이!</p>
     <div class="rform">
-      <label for="rFrom" class="sr">출발역</label><input id="rFrom" list="stationList" placeholder="출발역 (예: 신도림)" autocomplete="off">
+      <label for="rFrom" class="sr">출발역</label><input id="rFrom" list="stationList" placeholder="출발역" autocomplete="off">
       <button class="rswap" id="rSwap" aria-label="출발역과 도착역 바꾸기">⇄</button>
-      <label for="rTo" class="sr">도착역</label><input id="rTo" list="stationList" placeholder="도착역 (예: 강남)" autocomplete="off">
+      <label for="rTo" class="sr">도착역</label><input id="rTo" list="stationList" placeholder="도착역" autocomplete="off">
     </div>
     <datalist id="stationList"></datalist>
     <div class="rlegs" id="rLegs"></div>
     <p class="ldesc" id="rInfo"></p>
-    <button class="rbtn" id="rGo">경로 안내 보고 출근 ▶</button>
+    <button class="rbtn" id="rGo">경로 보고 출근 ▶</button>
   </div>
-  <div class="daily" style="margin-top:10px">
-    <div class="drow"><b>📅 <span id="dayLabel"></span> 오늘의 출근길</b><span id="streakLabel" class="sub"></span></div>
-    <p class="sub">오늘은 모두 <b>같은 승객 배치</b>로 출발해요 (빌런은 매판 랜덤). 노선별 최고 점수로 랭킹 경쟁!</p>
-    <div class="drow">
-      <label for="nickInput" class="sub">닉네임</label><input id="nickInput" maxlength="12" placeholder="랭킹에 표시될 이름" autocomplete="off">
-      <label class="tog"><input type="checkbox" id="dailyToggle" checked> 랭킹 도전</label>
-      <button class="rbtn" id="rankBtn">🏆 랭킹</button>
-    </div>
-    <p class="sub" id="rankNote"></p>
-  </div>
-  <p class="sub">PC: 숫자키 1~4로 바로 선택 · 랭킹 도전을 끄면 랜덤 배치 연습 모드</p>
 </div>
 <div class="overlay" id="rankScreen" style="z-index:12">
   <h1>🏆 오늘의 출근 랭킹</h1>
@@ -2332,11 +2343,8 @@ function showLineScreen() {
 function buildLineCards() {
   $('lineCards').innerHTML = LINES.map((L, i) => `
     <button class="lcard" data-i="${i}" style="--lc:${L.color}">
-      <div class="lhead"><span class="lbadge">${L.badge}</span><b>${L.name}</b><span class="lstars">${L.stars}</span></div>
-      <div class="lroute">${L.stations[0]} → ${L.stations[L.stations.length - 1]} · ${L.stations.length - 1}개 역</div>
-      <div class="ldesc">${L.desc}</div>
+      <div class="lhead"><span class="lbadge">${L.badge}</span><b>${L.name}</b><span class="lroute">${L.stations[0]}→${L.stations[L.stations.length - 1]} · ${L.stations.length - 1}역</span><span class="ltag">${L.label}</span></div>
       <div class="ltop" data-line="${L.id}"></div>
-      <div class="ltags"><span>${L.label}</span><span>승객 ${L.crowd}명+</span><span>개찰구 ${L.s1Time}초</span><span>빌런 ${L.villains}+</span></div>
     </button>`).join('');
   for (const b of document.querySelectorAll('.lcard')) b.addEventListener('click', () => { JOURNEY = null; startLine(LINES[+b.dataset.i]); });
 }
@@ -3444,8 +3452,8 @@ async function initRanking() {
 
 function renderLineTops() {
   const st = myStats();
-  $('streakLabel').textContent = st.streak ? `🔥 연속 출근 ${st.streak}일 · 착석 ${st.wins || 0}회 / ${st.plays || 0}판` : '첫 출근을 기록해 보세요';
-  const note = { loading: '랭킹 불러오는 중…', slow: '랭킹 서버 응답이 늦어요. 잠시 후 다시 열어 주세요.', offline: '이 화면에선 랭킹을 쓸 수 없어요 (공유 링크에서 열면 랭킹 참여)', error: '랭킹을 불러오지 못했어요', live: '' }[RK.state];
+  $('streakLabel').textContent = st.streak ? `🔥 연속 출근 ${st.streak}일 · 착석 ${st.wins || 0}회 / ${st.plays || 0}판` : '첫 출근!';
+  const note = { loading: '랭킹 불러오는 중…', slow: '랭킹 서버 응답이 늦어요. 잠시 후 다시 열어 주세요.', offline: '(랭킹은 공유 링크에서)', error: '랭킹을 불러오지 못했어요', live: '' }[RK.state];
   $('rankNote').textContent = note || (RK.uid ? '' : '로그인해야 랭킹에 등록돼요');
   for (const el of document.querySelectorAll('.ltop')) {
     const L = LINES.find(x => x.id === el.dataset.line);
