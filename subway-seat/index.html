@@ -63,7 +63,7 @@
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   select { -webkit-user-select: auto; user-select: auto; touch-action: auto; }
   .ltop { font-size: 11.5px; color: #ffd166; margin-top: 6px; min-height: 1em; }
-  #endBoard { width: 100%; max-width: 400px; margin-top: 6px; }
+  #endBoard { width: 100%; max-width: 640px; margin-top: 6px; }
   .board { margin-top: 4px; }
   .board tr.me td { color: #ffd166; font-weight: 900; }
   .nickrow { display: flex; gap: 8px; justify-content: center; align-items: center; }
@@ -169,6 +169,28 @@
   /* 오버레이 */
   .overlay { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; background: rgba(12,14,22,.95); text-align: center; padding: 22px 16px 30px; overflow-y: auto; z-index: 10; }
   .overlay.show { display: flex; }
+  #choice { position: absolute; left: 50%; transform: translateX(-50%); top: 180px; width: min(360px, calc(100vw - 32px)); background: rgba(15,20,32,.94); border: 2px solid #ffd166; border-radius: 16px; padding: 10px 12px; text-align: center; display: none; pointer-events: auto; z-index: 6; box-shadow: 0 8px 28px rgba(0,0,0,.5); }
+  #choice.show { display: block; }
+  #chTitle { display: block; font-size: 15px; color: #fff; }
+  #chSub { font-size: 11.5px; color: #c8cede; margin: 4px 0 6px; line-height: 1.4; }
+  .chg { height: 8px; background: #2a3044; border-radius: 4px; overflow: hidden; }
+  .chg i { display: block; height: 100%; width: 100%; background: #ffd166; }
+  #chBtns { display: flex; gap: 8px; margin-top: 8px; }
+  #chBtns:empty { display: none; }
+  .chb { flex: 1; border: 0; border-radius: 12px; padding: 10px 6px; font: 900 15px inherit; font-family: inherit; background: #1fa85a; color: #fff; cursor: pointer; box-shadow: 0 3px 0 #137a40; }
+  .chb.alt { background: #5b4bb0; box-shadow: 0 3px 0 #3b2f7a; }
+  .chb small { display: block; font-size: 10px; opacity: .7; font-weight: 700; }
+  .rkcols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 10px; text-align: left; align-items: start; }
+  .rkleft .board { width: 100%; font-size: 12.5px; }
+  .rkright { display: flex; flex-direction: column; gap: 7px; }
+  .rkrh { font-size: 12px; font-weight: 900; color: #ffd166; }
+  .cmt .who { font-size: 11px; color: #9aa3b8; font-weight: 800; margin-bottom: 2px; }
+  .cmt .bub { position: relative; background: #fff; color: #1c2130; border-radius: 12px; padding: 6px 9px; font-size: 12.5px; font-weight: 700; line-height: 1.35; word-break: break-all; margin-left: 6px; }
+  .cmt .bub::before { content: ''; position: absolute; left: -6px; top: 8px; border: 6px solid transparent; border-left: 0; border-right-color: #fff; }
+  .cmt.me .bub { background: #ffe9a8; } .cmt.me .bub::before { border-right-color: #ffe9a8; }
+  .cmtform { margin: 8px 0; padding: 8px; background: #1b2030; border-radius: 12px; }
+  .cmtform .cnt { min-width: 38px; font-size: 11px; }
+  @media (max-width: 480px) { .rkleft .board td:nth-child(3) { display: none; } .rkleft .board { font-size: 11.5px; } }
   #pauseScreen { background: rgba(12,14,22,.86); justify-content: center; }
   .pmenu { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 4px; width: min(280px, 100%); }
   .pmenu .go { margin: 0; width: 100%; }
@@ -202,6 +224,7 @@
     <div class="disc"><span id="discFace">😐</span><span class="dlabel">불쾌지수</span><div class="dbar"><i id="discBar"></i></div><span id="discNum">0</span><span id="buffs"></span></div>
   </div>
   <div id="rage"></div>
+  <div id="choice"><b id="chTitle"></b><div id="chSub"></div><div class="chg"><i id="chBar"></i></div><div id="chBtns"></div></div>
   <div id="phoneInfo"></div>
   <div id="warn"><div class="sil">?</div><div><span id="warnT"></span><small id="warnS"></small></div></div>
   <div id="cutin"><div id="cutFace"></div><div><small id="cutGrade"></small><b id="cutName"></b><span id="cutSkill"></span></div></div>
@@ -273,7 +296,8 @@
     <tr><td>🪑</td><td>앉으면 불쾌지수 <b>-30</b>, 이후 빨리감기 ⏩로 편하게 감</td></tr>
     <tr><td>🚪</td><td><b>도착역(환승역)에선 문이 열린 동안 직접 "내리기"</b>를 눌러야 함. 놓치면 😱 지나쳐서 되돌아감: -300점, 불쾌지수 +25. 🎧 이어폰 중엔 도착 방송·차임이 안 들려요!</td></tr>
     <tr><td>🧍</td><td>개찰구·승강장은 <b>발자국 줄 끝에 서기</b>. 줄 앞이나 중간에 끼어들면 주변 사람 불쾌지수↑ (머리 위 😒😠🤬)</td></tr>
-    <tr><td>🤰</td><td><b>임산부 배려석</b>(분홍)은 늘 비어 있지만… 앉으면 주변 시선 폭발 = 실패</td></tr>
+    <tr><td>🤰</td><td><b>임산부 배려석</b>(분홍)은 임산부만! 앉으면 주변 시선 폭발 = 실패. 임산부도 탔다 내렸다 해요</td></tr>
+    <tr><td>👵</td><td><b>앉아 있을 때</b> 어르신·임산부가 내 앞에 오면 <b>양보</b>(매너·점수↑, 대신 서서 감) 또는 <b>자는 척</b>(헛기침에 움찔하면 들킴!). 옆 사람이 어깨에 기대 졸기도 해요</td></tr>
     <tr><td>📉</td><td>아무와도 안 닿으면 천천히 내려감 · <b>빌런 참교육 성공 시 -15</b> · 📱폰 보기 중엔 덜 오름</td></tr>
     <tr><td>☕</td><td>대합실 아이템: ☕ 커피(-30) · 🎧 노캔 이어폰(볼륨 빌런 무효) · 🍬 목캔디(-15)</td></tr>
   </table>
@@ -340,7 +364,7 @@
 <div class="overlay" id="rankScreen" style="z-index:12">
   <h1>🏆 오늘의 출근 랭킹</h1>
   <div id="rankTabs" class="rtabs"></div>
-  <div id="rankBody" style="width:100%;max-width:420px"></div>
+  <div id="rankBody" style="width:100%;max-width:640px"></div>
   <button class="go" id="rankClose">닫기</button>
 </div>
 <div id="bonk">
@@ -632,6 +656,7 @@ function buildPerson(look) {
     return p;
   });
   const body = mesh(G_BODY, coat, 0, .74, 0, root);
+  if (look.belly) mesh(new THREE.SphereGeometry(.17, 14, 10), coat, 0, .64, .15, root);
   const arms = [-1, 1].map(s => {
     const p = new THREE.Group(); p.position.set(s * .25, .9, 0); root.add(p);
     mesh(G_ARM, coat, 0, -.15, 0, p);
@@ -736,7 +761,7 @@ class Person {
       arms[0].rotation.x = -sw * .8; arms[1].rotation.x = this.look.phone ? -1.0 : sw * .8;
       root.position.y = Math.abs(Math.sin(this.walkT)) * .04 * this.moving;
     } else { arms[0].rotation.x = -.6; arms[1].rotation.x = this.look.phone ? -1.0 : -.6; }
-    if (this.stun > 0) root.rotation.z = Math.sin(performance.now() / 60) * .15; else root.rotation.z = 0;
+    if (this.stun > 0) root.rotation.z = Math.sin(performance.now() / 60) * .15; else root.rotation.z = this.lean || 0;
     const top = this.sitting ? 1.7 : 1.85;
     const dl = this.disc || 0;
     this.icon.visible = this.mood > 0 || this.stun > 0 || dl >= 30;
@@ -823,6 +848,7 @@ function newGame(carry = null) {
     if (isPink(s)) {
       s.pink = true;
       s.pinkSp = makeSprite(labelTex('🤰 임산부 배려석', '#ff8fb8'), .9, .2); s.pinkSp.position.set(SEAT_X[side], 1.15, s.z); scene.add(s.pinkSp);
+      if (rnd() < .4) { const n = new Person({ look: pregLook(), stop: genStop(1), side, label: '🤰 임산부', labelColor: '#ff8fb8' }); n.special = 'pregPink'; n.sitOn(s); }
       continue;   // 보통 비어 있음 (유혹)
     }
     const n = new Person({ look: npcLook(), stop: genStop(1), side });
@@ -863,7 +889,7 @@ function sideDoors() { return G && G.stage === 2 && G.doorSide != null ? DOORS.f
 function nearestDoor(p) { let b = DOORS[0], bd = 1e9; for (const d of sideDoors()) { const dd = dist(p, d); if (dd < bd) { bd = dd; b = d; } } return b; }
 function leave(p) {
   if (p.setActivity && p.act) p.setActivity(null);
-  if (p.seat) { const s = p.seat; s.occ = null; p.seat = null; p.setSit(false); p.x = FRONT_X[s.side] * .8; if (!s.blocked) scheduleClaim(s); }
+  if (p.seat) { const s = p.seat; s.occ = null; p.seat = null; p.setSit(false); p.x = FRONT_X[s.side] * .8; if (!s.blocked && !s.pink) scheduleClaim(s); }
   p.setSignal(null);
   const d = nearestDoor(p);
   p.speed = 2.2;
@@ -1104,6 +1130,7 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if ((k === 'escape' || k === 'p') && !e.repeat && canPause()) { e.preventDefault(); togglePause(); return; }
   if (G && G.userPaused) return;
+  if (G && G.sev && G.sev.mode === 'choice' && (k === '1' || k === '2') && !e.repeat) { e.preventDefault(); sevPick(+k - 1); return; }
   if (BONK.on) { if (k === ' ' || k === 'enter' || k === 'e' || k === 'j' || k === 'f') { e.preventDefault(); if (!e.repeat) bonkHit(); } return; }
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   if (!keys.has(k)) {
@@ -1199,6 +1226,7 @@ function action() {
   audio();
   if (G.stage === 1) return action1();
   if (G.alightOpen) return doAlight();
+  if (G.sev && sevAction()) return;
   if (P.seated) { float(G.ffwd ? '💺 편하게 가는 중…' : '💺 도착역에서 내리기!', { x: P.x, y: 2.2, z: P.z }, '#cfd6ff', 12, .8); return; }
   if (P.stuck) {
     P.stuck.taps++; SFX.squeeze();
@@ -1372,11 +1400,12 @@ function playerSit(s) {
   G.winT = 0; setTimeout(() => { if (G && G.stage === 2 && G.phase !== 'end') G.winT = null; }, 1700);
   $('big').textContent = '착석!'; $('big').classList.add('show'); setTimeout(() => { if (G.phase !== 'end') $('big').classList.remove('show'); }, 1500);
   SFX.sit();
-  G.satAt = currentStop(); G.satRemain = Math.max(0, LAST - G.satAt);
+  G.satAt = currentStop(); G.satClock = G.clock; G.satRemain = (G.satAcc || 0) + Math.max(0, LAST - G.satAt);
   setTimeout(() => float('💺 편하게 가는 중 (빨리감기) · 도착역에서 🚪 내리기를 꼭 누르세요!', { x: P.x, y: 2.4, z: P.z }, '#ffe066', 14, 2.6), 900);
 }
 // ── 도착역: 문 열린 동안 직접 내려야 함
 function arriveDestination() {
+  sevCancel();
   const k = G.next, st = STATIONS[k];
   G.phase = 'arrive'; G.t = 0; G.boarded = true; G.refilled = true; G.saidClose = false;
   G.doorSide = doorSideOf(st); G.alightOpen = true;
@@ -1424,10 +1453,11 @@ function missedStop() {
   G.phase = 'run'; G.t = 0; G.runDur = 9; G.saidThis = true; G.warn = 'x';
 }
 function stage1Rows() {
-  const c = G.carry; if (!c) return [];
+  const ev = G.evRows || [];
+  const c = G.carry; if (!c) return [...ev];
   const r = [['🚪', `승강장 줄: ${c.idx + 1}번째로 탑승 (그 문 자리 ${c.cap})`, (c.cap - c.idx) * 30 - (c.late ? 60 : 0)]];
   if (c.lateRisk) r.push(['⚠️', '지각 위험: 다음 열차 탑승', -200]);
-  return r;
+  return [...r, ...ev];
 }
 function failGame() {
   if (JOURNEY) {
@@ -1489,7 +1519,7 @@ function update(dt) {
   if (G.phase !== 'end') {
     // 앉아서 가는 중엔 빨리감기 (도착역 9초 전부터는 정상 속도)
     const nearDest = G.next >= LAST && G.phase === 'run' && G.runDur - G.t <= 9;
-    G.ffwd = P.seated && !G.alightOpen && !nearDest && !G.overshoot;
+    G.ffwd = P.seated && !G.alightOpen && !nearDest && !G.overshoot && !G.sev;
     G.t += dt * (G.ffwd ? 4 : 1);
     if (P.seated) P.disc = Math.max(0, (P.disc || 0) - 1 * dt);
     if (G.phase === 'arrive' && G.alightOpen && G.t >= G.arriveDur) { missedStop(); }
@@ -1510,6 +1540,7 @@ function update(dt) {
     updateDisc(dt);
     updateVillains(dt);
     if (G.phase !== 'end') updateClaims();
+    if (G.phase !== 'end') updateSeatEvents(dt);
     updateBags(dt);
   } else { if (P.seated) P.update(dt); updateBags(dt); }
 
@@ -1603,6 +1634,8 @@ function drawHUD2() {
   let label = '—', cls = '';
   if (G.phase === 'end') { }
   else if (G.alightOpen) { label = '🚪 내리기!<br><small>' + STATIONS[LAST] + '</small>'; cls = 'ready'; }
+  else if (G.sev && G.sev.mode === 'sleep') { label = G.sev.flinch > 0 ? '✋ 멈춰!<br><small>움찔 금지</small>' : '😴 쿨쿨<br><small>연기</small>'; cls = G.sev.flinch > 0 ? 'mash' : 'ready'; }
+  else if (G.sev && G.sev.mode === 'choice') { label = '⬆️ 선택<br><small>1 / 2</small>'; cls = 'cough'; }
   else if (P.seated) { label = G.ffwd ? '💺 착석 중<br><small>빨리감기 ⏩</small>' : `💺 곧 ${STATIONS[LAST]}<br><small>내릴 준비!</small>`; cls = G.ffwd ? '' : 'cough'; }
   else if (P.stuck) { label = `🎒 빼기!<br><small>${P.stuck.taps}/${P.stuck.need} 연타</small>`; cls = 'mash'; }
   else if (nearJjeok()) { label = `헛기침<br><small>${G.jjeok.coughs}/3</small>`; cls = 'cough'; }
@@ -1622,6 +1655,7 @@ function drawCommonHUD() {
   // 경보 띠·폰 정보창은 HUD 높이에 맞춰 바로 아래에
   const hh = $('hud').offsetHeight;
   $('warn').style.top = hh + 'px';
+  $('choice').style.top = (hh + 6 + ($('warn').classList.contains('show') ? 56 : 0)) + 'px';
   $('phoneInfo').style.top = (hh + 8 + ($('warn').classList.contains('show') ? 56 : 0)) + 'px';
   const d = Math.round(P.disc || 0);
   $('discBar').style.width = d + '%';
@@ -2244,7 +2278,7 @@ function robbed(v, txt) {
 const eyeing = s => dist(P, front(s)) < 1.6;
 function addDisc(v) {
   if (!P || G.phase === 'end' || P.seated) return 0;
-  if (v > 0) v *= (P.ear ? .75 : 1) * (P.caffeine ? .85 : 1);
+  if (v > 0) v *= (P.ear ? .75 : 1) * (P.caffeine ? .85 : 1) * (P.proud ? .6 : 1);   // 😊 양보한 뿌듯함
   // 📱·🎧 써도 서 있는 한 불쾌지수는 느리게나마 계속 오름
   if (v > 0) v *= Math.max(.2, (P.phone ? .35 : 1) * (P.earMode ? (P.ear ? .35 : .5) : 1));
   const before = P.disc || 0;
@@ -2889,6 +2923,235 @@ function actAura(a) {
   }
 }
 
+// ═════════════════════════ 앉아 있을 때 이벤트 (양보 · 자는 척 · 어깨 기댐) ═════════════════════════
+const elderLook = () => ({ coat: pick(['#8b7d6b', '#6d5d4b', '#7a6a8a', '#5d6d7e']), pants: '#4a4a4a', hair: pick(['#e6e6e6', '#cfcfcf', '#bdbdbd']), curly: rnd() < .5, cane: true });
+const pregLook = () => ({ coat: pick(['#f4a6c0', '#e8b4d8', '#ffc4a8', '#b8d8f0']), pants: '#3a3550', hair: pick(HAIRS), longHair: rnd() < .6, belly: true, handbag: true });
+const SEV_TXT = {
+  elder: { who: '👵 어르신', title: '👵 어르신이 내 앞에 서 계신다…', say: ['에구구… 다리야…', '(손잡이를 꽉 잡으신다)', '아이고 허리야…'], cough: ['에헴!', '에헴!! 에헴!!', '크흠…!'] },
+  preg: { title: '🤰 임산부가 내 앞에… 배려석은 이미 꽉 찼다', say: ['(배를 감싸며 휘청…)', '후… 좀 힘드네…', '(손잡이를 겨우 잡는다)'], cough: ['아이고 허리야… 😣', '후우… 😮‍💨', '(휘청!)'] },
+};
+function seatPanel(show) { $('choice').classList.toggle('show', !!show); }
+function setChoice(title, sub, btns) {
+  $('chTitle').textContent = title; $('chSub').innerHTML = sub;
+  const box = $('chBtns'); box.innerHTML = '';
+  btns.forEach((t, i) => { const b = document.createElement('button'); b.className = 'chb' + (i ? ' alt' : ''); b.innerHTML = `${t}<small>${i + 1}</small>`; b.onclick = e => { e.stopPropagation(); sevPick(i); }; box.append(b); });
+  seatPanel(true);
+}
+const evRow = (e, t, v) => (G.evRows = G.evRows || []).push([e, t, v]);
+function sevDoor() { const s = sideDoors(); return pick(s.length ? s : DOORS); }
+function boardPregToPink(s) {
+  const d = sevDoor();
+  const n = new Person({ look: pregLook(), x: d.x * .95, z: d.z, stop: genStop(G.next + 1), speed: 1.4, label: '🤰 임산부', labelColor: '#ff8fb8' });
+  n.special = 'pregPink'; s.pinkRes = n;
+  n.goTo(FRONT_X[s.side] * .9, s.z, 'board', () => {
+    s.pinkRes = null;
+    if (!s.occ) { n.sitOn(s); float('🤰 배려석 착석 — 비워둬서 다행!', { x: SEAT_X[s.side], y: 1.9, z: s.z }, '#ff8fb8', 12, 1.4); }
+    else n.state = 'stand';
+  });
+  return n;
+}
+function sevSpawn(kind) {
+  const s = P.seat, d = sevDoor(), isE = kind === 'elder';
+  const n = new Person({ look: isE ? elderLook() : pregLook(), x: d.x * .95, z: d.z, stop: BEYOND, speed: isE ? 1.2 : 1.4, label: isE ? '👵 어르신' : '🤰 임산부', labelColor: isE ? '#ffd9a0' : '#ff8fb8' });
+  n.special = kind;
+  const tx = FRONT_X[s.side] * .8, tz = s.z;
+  for (const q of standingNpcs()) if (Math.hypot(q.x - tx, q.z - tz) < .55) { const sp = freeSpot(tz + 1.5) || freeSpot(); if (sp) q.goTo(sp.x, sp.z, 'board', () => { q.state = 'stand'; }); }
+  n.goTo(tx, tz, 'board', () => { n.state = 'wait'; });
+  G.sev = { kind, npc: n, mode: 'walk', t: 0, seat: s };
+  float(isE ? '👵 어르신이 탔다… 내 쪽으로 오신다' : '🤰 임산부가 탔다… 배려석은 꽉 찼는데?', { x: P.x, y: 2.3, z: P.z }, isE ? '#ffd9a0' : '#ff8fb8', 13, 2);
+}
+function sevStartChoice() {
+  const S = G.sev; S.mode = 'choice'; S.t = 0; S.limit = 7;
+  if (S.kind === 'doze') {
+    setChoice('😪 옆 사람이 내 어깨에 기대 잠들었다…', '안 고르면 그냥 어깨를 빌려줘요', ['🤝 어깨 빌려주기', '👉 어깨 툭']);
+    return;
+  }
+  const n = S.npc; n.target = null; n.state = 'wait';
+  n.rot = Math.atan2(SEAT_X[S.seat.side] - n.x, S.seat.z - n.z);
+  float(pick(SEV_TXT[S.kind].say), { x: n.x, y: 2.3, z: n.z }, '#fff', 13, 1.8);
+  setChoice(SEV_TXT[S.kind].title, '7초 안에 고르세요 · 안 고르면 <b>못 본 척</b> (매너↓)', ['🙏 양보하기', '😴 자는 척']);
+}
+function sevPick(i) {
+  const S = G && G.sev; if (!S || S.mode !== 'choice') return;
+  audio();
+  if (S.kind === 'doze') return i ? dozePush() : dozeLend();
+  return i ? startSleep() : yieldSeat(false);
+}
+function standPlayerUp() {
+  const s = P.seat;
+  G.satAcc = (G.satAcc || 0) + Math.max(0, currentStop() - (G.satAt ?? currentStop()));
+  G.satRemain = G.satAcc;
+  P.seated = false; if (s && s.occ === P) s.occ = null; P.seat = null; P.setSit(false); P.state = 'stand';
+  P.parts.head.rotation.set(0, 0, 0);
+  P.x = FRONT_X[s.side] * .55; P.z = clamp(s.z + (s.z > 0 ? -.55 : .55), Z_MIN + .3, Z_MAX - .3);
+  return s;
+}
+function npcMoveOn(n, msg) {
+  if (msg) float(msg, { x: n.x, y: 2.3, z: n.z }, '#ffb3b3', 13, 1.8);
+  n.stop = G.phase === 'arrive' ? G.next + 1 : G.next;
+  const sp = freeSpot(n.z + (n.z > 0 ? -2 : 2)) || freeSpot();
+  if (sp) n.goTo(sp.x, sp.z, 'board', () => { n.state = 'stand'; }); else n.state = 'stand';
+}
+function yieldSeat(forced) {
+  const S = G.sev, n = S.npc;
+  if (!forced && S.kind === 'elder' && rnd() < .2) {
+    float('아이고 괜찮아~ 금방 내려요 😊', { x: n.x, y: 2.3, z: n.z }, '#a8ffb0', 14, 2);
+    P.manner += 8; evRow('🙏', '양보하려는 마음 (어르신이 사양하심)', 300);
+    float('🙏 매너 +8 · 자리는 그대로!', { x: P.x, y: 2.5, z: P.z }, '#a8ffb0', 14, 1.8);
+    npcMoveOn(n); return endSev();
+  }
+  const s = standPlayerUp();
+  n.target = null; n.sitOn(s); n.stop = genStop(G.next + 1);
+  if (!forced) {
+    const E = S.kind === 'elder';
+    P.manner += E ? 12 : 15;
+    P.proud = true; setTimeout(() => { if (G && G.stage === 2 && G.phase !== 'end') float('😊 뿌듯함: 이번 열차에선 불쾌지수가 덜 올라요', { x: P.x, y: 2.6, z: P.z }, '#a8ffb0', 13, 2.2); }, 2600);
+    evRow(E ? '👵' : '🤰', E ? '어르신께 자리 양보' : '임산부에게 자리 양보', E ? 500 : 600);
+    float(E ? '아이고 고마워요~ 복 받을 거예요 😊' : '정말 감사해요… 🥹', { x: n.x, y: 2.1, z: n.z }, '#a8ffb0', 14, 2);
+    if (E) setTimeout(() => { if (G && G.stage === 2 && G.phase !== 'end') { calm(15); float('🍬 어르신이 사탕을 주셨다! (불쾌지수 -15)', { x: P.x, y: 2.5, z: P.z }, '#ffe066', 13, 2); } }, 1200);
+    float(`🙏 자리 양보! 매너 +${E ? 12 : 15}`, { x: P.x, y: 2.5, z: P.z }, '#a8ffb0', 16, 1.8);
+    for (const q of people) if (q.kind === 'npc' && q !== n && dist(q, P) < 2.6) { q.disc = Math.max(0, (q.disc || 0) - 20); if (rnd() < .5) float(pick(['👏', '멋지다…', '👍']), { x: q.x, y: 2.1, z: q.z }, '#a8ffb0', 12, 1.3); }
+    SFX.pop(); tone(988, .08, .2, 'sine', .06);
+  }
+  endSev();
+}
+function startSleep() {
+  const S = G.sev; S.mode = 'sleep'; S.t = 0; S.sus = 15; S.dur = S.kind === 'preg' ? 8 : 7; S.nextCough = 1.1 + rnd() * .5; S.flinch = 0; S.cd = 0;
+  P.parts.head.rotation.x = .45;
+  float('😴 (자는 척…)', { x: P.x, y: 2.3, z: P.z }, '#cfd6ff', 14, 1.4);
+  setChoice('😴 자는 척 중… 들키지 마!', `<b>행동(Space)</b> = 쿨쿨 연기 (의심↓) · <b>“${S.kind === 'elder' ? '에헴!' : '아이고…'}”</b> 순간에 누르면 움찔! 들킴` + (P.earMode ? '<br>🎧 헤드셋이라 헛기침이 안 들려 움찔할 일 없음' : '') + (P.phone ? '<br>📱 폰 화면이 켜져 있어 의심이 빨리 쌓임!' : ''), []);
+}
+function sevAction() {
+  const S = G.sev; if (!S) return false;
+  if (S.mode === 'choice') { float('위 버튼(1 / 2)으로 골라요', { x: P.x, y: 2.2, z: P.z }, '#cfd6ff', 12, .8); return true; }
+  if (S.mode === 'lend') { float('(움직이면 깰 것 같다…)', { x: P.x, y: 2.2, z: P.z }, '#cfd6ff', 12, .8); return true; }
+  if (S.mode !== 'sleep') return false;
+  if (S.flinch > 0) { S.sus += 30; S.flinch = 0; G.shake = .15; float('움찔!! 😳', { x: P.x, y: 2.3, z: P.z }, '#ff8a8a', 16, 1); SFX.alarm(); }
+  else if (S.cd <= 0) { S.sus = Math.max(0, S.sus - 13); S.cd = .35; P.parts.head.rotation.x = .45 + rand(.05, .25); float(pick(['쿨…', 'zZ', '쿨쿨…', '(꾸벅)']), { x: P.x + rand(-.2, .2), y: 2.0, z: P.z }, '#cfd6ff', 13, .7); }
+  return true;
+}
+function sleepBusted() {
+  const S = G.sev, n = S.npc;
+  float(pick(['다 보이거든요?!', '실눈 뜬 거 봤어요!', '아까 폰 보던데요?']), { x: n.x, y: 2.3, z: n.z }, '#ff8a8a', 16, 2);
+  for (const q of people) if (q.kind === 'npc' && q !== n && dist(q, P) < 2.6) { q.mood = 2; if (rnd() < .5) float(pick(['쯧쯧…', '어휴…', '😒']), { x: q.x, y: 2.1, z: q.z }, '#ffb3b3', 12, 1.3); }
+  P.manner -= 15; evRow('😳', '자는 척 들킴 → 결국 양보', -200);
+  float('😳 들켰다! 매너 -15 · 불쾌지수 +20', { x: P.x, y: 2.5, z: P.z }, '#ff8a8a', 15, 2);
+  G.shake = .3; SFX.alarm();
+  yieldSeat(true);
+  P.disc = Math.min(100, (P.disc || 0) + 20); if (P.disc >= 100) collapse();
+}
+function sleepWin() {
+  const S = G.sev, n = S.npc;
+  P.parts.head.rotation.set(0, 0, 0);
+  npcMoveOn(n, S.kind === 'elder' ? '…요즘 젊은 사람들은 참 😮‍💨' : '(조용히 다른 쪽으로…)');
+  P.manner -= 6; P.disc = Math.min(100, (P.disc || 0) + 5);
+  evRow('😴', '자는 척 성공 (양심은 찔림)', 150);
+  float('😮‍💨 버텼다… 근데 마음이 불편하다 (매너 -6)', { x: P.x, y: 2.5, z: P.z }, '#ffd166', 14, 2);
+  endSev();
+}
+function sevIgnore() {
+  const S = G.sev, n = S.npc;
+  P.manner -= 10; P.disc = Math.min(100, (P.disc || 0) + 8);
+  evRow('😶', '못 본 척', -150);
+  for (const q of people) if (q.kind === 'npc' && q !== n && dist(q, P) < 2.4) { q.mood = 2; if (rnd() < .4) float('쯧쯧…', { x: q.x, y: 2.1, z: q.z }, '#ffb3b3', 12, 1.2); }
+  float('😶 못 본 척… 매너 -10 (주변 시선이 따갑다)', { x: P.x, y: 2.5, z: P.z }, '#ff9a9a', 14, 2);
+  npcMoveOn(n, S.kind === 'elder' ? '…허허 참 😮‍💨' : '(한숨…)');
+  endSev();
+}
+function dozeStart() {
+  const s = P.seat;
+  const nb = [s.i - 1, s.i + 1].map(i => seats[s.side][i]).filter(x => x && x.occ && x.occ.kind === 'npc' && !x.occ.special && !x.occ.vtype).map(x => x.occ)[0];
+  if (!nb) return false;
+  if (nb.setActivity) nb.setActivity('sleep');
+  nb.lean = (nb.z < P.z ? 1 : -1) * (s.side ? -1 : 1) * .38;
+  G.sev = { kind: 'doze', npc: nb, mode: 'choice', t: 0, seat: s };
+  float('(스르륵… 툭)', { x: nb.x, y: 1.9, z: nb.z }, '#cfd6ff', 13, 1.4);
+  sevStartChoice();
+  return true;
+}
+function dozeLend() {
+  const S = G.sev; S.mode = 'lend'; S.t = 0;
+  P.manner += 6;
+  float('🤝 어깨 빌려주는 중… (매너 +6, 조금 불편)', { x: P.x, y: 2.4, z: P.z }, '#a8ffb0', 13, 1.8);
+  setChoice('🤝 어깨 빌려주는 중…', '움직이지 말고 버텨요 · 불쾌지수가 조금씩 오름', []);
+}
+function dozePush() {
+  const n = G.sev.npc; n.lean = 0; if (n.setActivity) n.setActivity(null);
+  float('헉! 죄송해요 😳', { x: n.x, y: 1.9, z: n.z }, '#fff', 14, 1.4); annoy(n, 15);
+  P.manner -= 1; P.disc = Math.max(0, (P.disc || 0) - 5);
+  float('👉 툭! 어깨 자유 (불쾌지수 -5)', { x: P.x, y: 2.4, z: P.z }, '#cfd6ff', 13, 1.5);
+  endSev();
+}
+function endSev() {
+  const S = G.sev; if (!S) return;
+  if (S.npc && S.kind === 'doze') S.npc.lean = 0;
+  if (P.seated) P.parts.head.rotation.set(0, 0, 0);
+  G.sev = null; G.sevCount = (G.sevCount || 0) + 1; G.sevCool = 4;
+  seatPanel(false);
+}
+function sevCancel() {
+  const S = G && G.sev; if (!S) return;
+  if (S.npc && S.kind !== 'doze' && !S.npc.sitting) S.npc.state = 'stand';
+  if (S.npc && S.kind === 'doze') S.npc.lean = 0;
+  P.parts.head.rotation.set(0, 0, 0);
+  G.sev = null; seatPanel(false);
+}
+function updateSeatEvents(dt) {
+  // 임산부는 배려석에 탔다가 내렸다가
+  if (G.phase === 'arrive' && G.t > .4 && G.pinkRoll !== G.next && G.next < LAST) {
+    G.pinkRoll = G.next;
+    const free = seats.flat().filter(s => s.pink && !s.occ && !s.pinkRes);
+    if (free.length && rnd() < .3) boardPregToPink(free[0]);
+  }
+  G.sevCool = Math.max(0, (G.sevCool || 0) - dt);
+  const S = G.sev;
+  if (!S) {
+    if (!P.seated || G.phase !== 'arrive' || G.t < .3 || G.sevRoll === G.next || (G.sevCount || 0) >= 2 || G.next >= LAST || G.sevCool > 0 || G.clock - (G.satClock || 0) < 2) return;
+    G.sevRoll = G.next;
+    const left = LAST - G.next, force = !G.sevCount && left <= 1;
+    if (!force && rnd() >= (G.sevCount ? .35 : .6)) return;
+    const r = rnd();
+    if (r >= .78 && dozeStart()) return;
+    if (r >= .42 && r < .78) {
+      for (const s of seats.flat()) if (s.pink && !s.occ && !s.pinkRes) boardPregToPink(s);
+      sevSpawn('preg');
+    } else sevSpawn('elder');
+    return;
+  }
+  S.t += dt;
+  if (S.mode === 'walk') {
+    if (S.npc.state === 'wait' || S.t > 5) sevStartChoice();
+  } else if (S.mode === 'choice') {
+    $('chBar').style.width = clamp(1 - S.t / S.limit, 0, 1) * 100 + '%'; $('chBar').style.background = '#ffd166';
+    if (S.t > S.limit) { if (S.kind === 'doze') dozeLend(); else sevIgnore(); }
+  } else if (S.mode === 'sleep') {
+    S.cd -= dt; S.flinch = Math.max(0, S.flinch - dt);
+    const glare = Math.min(3, standingNpcs().filter(q => dist(q, P) < 1.8).length);
+    const rate = (S.kind === 'preg' ? 11 : 8) * (P.phone ? 1.6 : 1) * (P.earMode ? .85 : 1) + 3 * glare;
+    S.sus += rate * dt;
+    S.nextCough -= dt;
+    if (S.nextCough <= 0) {
+      S.nextCough = 1.4 + rnd() * .9; S.sus += 8;
+      float(pick(SEV_TXT[S.kind].cough), { x: S.npc.x, y: 2.3, z: S.npc.z }, '#ffe066', 16, 1);
+      if (!P.earMode) { S.flinch = .7; SFX.cough(); }
+    }
+    $('chBar').style.width = clamp(S.sus, 0, 100) + '%';
+    $('chBar').style.background = S.flinch > 0 ? '#ff4d4d' : S.sus > 70 ? '#ff9f43' : '#7bdc8a';
+    $('chTitle').textContent = S.flinch > 0 ? '⚠️ 움찔 금지!! 누르지 마!' : `😴 자는 척 중… ${Math.max(0, Math.ceil(S.dur - S.t))}초만 버텨!`;
+    if (S.sus >= 100) sleepBusted();
+    else if (S.t >= S.dur) sleepWin();
+  } else if (S.mode === 'lend') {
+    P.disc = Math.min(100, (P.disc || 0) + 2.2 * dt);
+    $('chBar').style.width = clamp(1 - S.t / 6, 0, 1) * 100 + '%'; $('chBar').style.background = '#7bdc8a';
+    if (S.t > 6) {
+      const n = S.npc; if (n.setActivity) n.setActivity(null);
+      float('헉… 죄송해요!! 🙇 감사합니다', { x: n.x, y: 1.9, z: n.z }, '#a8ffb0', 13, 1.8);
+      evRow('🤝', '졸던 옆 사람에게 어깨 빌려줌', 200);
+      endSev();
+    }
+  }
+}
+
 // ═════════════════════════ 임산부 배려석 ═════════════════════════
 const PINK = [[0, 0], [1, SEATS - 1]];
 function isPink(s) { return PINK.some(([side, i]) => s.side === side && s.i === i); }
@@ -3158,15 +3421,80 @@ function boardList(L, limit, mark) {
 }
 function renderEndBoard(head) {
   const out = $('endBoard'); out.innerHTML = '';
-  const { el, all } = boardList(rankLine(), 5, RK.uid);
-  const myIdx = all.findIndex(r => r.id === RK.uid);
+  const { el, all, myIdx, key } = rankCols(rankLine(), 10);
   const RL = rankLine();
   const h = document.createElement('h2'); h.textContent = `📅 오늘의 출근길 · ${RL.name}${RL.custom ? ' ' + RL.routeLabel : ''}`; out.append(h);
   if (head) out.append(line(head));
   if (myIdx >= 0) out.append(line(`내 순위 ${myIdx + 1}위 / ${all.length}명`));
+  if (myIdx >= 0 && myIdx < 10) out.append(cmtForm(key, () => renderEndBoard(head)));
   out.append(el);
   const more = document.createElement('button'); more.className = 'go go2'; more.textContent = '🏆 전체 랭킹'; more.onclick = () => openRank(rankLine().dest);
   out.append(more);
+}
+// ── 1~10위 한마디 (30자 미만 · 욕설/음란어 ***) ──
+const CMT_MAX = 29;
+const BAD_WORDS = ['씨발', '씨빨', '씨바', '시발', '쓰발', '쒸발', 'ㅆㅂ', 'ㅅㅂ', 'ㅆㅃ', '병신', '븅신', '빙신', 'ㅂㅅ', '좆', '존나', '졸라', 'ㅈㄴ', '개새끼', '개새', '개색', '새끼', '색기', '쌔끼', '지랄', 'ㅈㄹ', '미친놈', '미친년', '미친새', '또라이', '염병', '엠창', '니미', '니애미', '느금', '느개비', '애미', '애비', '꺼져', '닥쳐', '닥치', '썅', '쌍놈', '쌍년', '등신', '찐따', '틀딱', '급식충', '맘충', '한남충', '김치녀', '섹스', '야동', '보지', '자지', '젖꼭', '강간', '성기', '딸딸이', '자위', '포르노', '야스', 'fuck', 'fck', 'shit', 'bitch', 'sex', 'porn', 'dick', 'pussy', 'asshole', 'cunt', 'nigger', 'nigga'];
+function maskBad(str) {
+  const chars = [...str];
+  // 사이에 낀 공백·숫자·기호는 무시하고 검사 ("씨 1 발" 도 걸림)
+  const keep = [], norm = [];
+  chars.forEach((c, i) => { if (/[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z]/.test(c)) { keep.push(i); norm.push(c.toLowerCase()); } });
+  const ns = norm.join(''), hit = new Array(chars.length).fill(false);
+  for (const w of BAD_WORDS) { let at = ns.indexOf(w); while (at >= 0) { for (let j = keep[at]; j <= keep[at + w.length - 1]; j++) hit[j] = true; at = ns.indexOf(w, at + 1); } }
+  let out = chars.map((c, i) => hit[i] && c.trim() ? '*' : c).join('');
+  return out.replace(/ㅗ{1,}/g, m => '*'.repeat(m.length));
+}
+function cleanCmt(s) { return maskBad(String(s || '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim()).slice(0, CMT_MAX); }
+function cmtOf(d, key) { const b = d && d.best && d.best[key]; return b && typeof b.cmt === 'string' ? cleanCmt(b.cmt) : ''; }
+async function saveCmt(key, text) {
+  const cur = RK.mine; if (!RK.db || !RK.uid || !cur || !cur.best || !cur.best[key]) return false;
+  const best = { ...cur.best, [key]: { ...cur.best[key], cmt: cleanCmt(text), cmtAt: Date.now() } };
+  await RK.db.doc('runs/' + RK.uid).set({ nick: cur.nick, best, stats: cur.stats || myStats(), v: 1 });
+  RK.mine = { ...cur, best }; RK.runs.set(RK.uid, RK.mine);
+  return true;
+}
+function cmtForm(key, onSaved) {
+  const box = document.createElement('div'); box.className = 'cmtform';
+  const cur = cmtOf(RK.mine, key);
+  const head = document.createElement('p'); head.className = 'sub'; head.innerHTML = '🏅 <b>TOP 10 입성!</b> 오늘 출근 한마디를 남겨요 (30자 미만, 욕설·음란어는 ***)';
+  const row = document.createElement('div'); row.className = 'nickrow';
+  const inp = document.createElement('input'); inp.maxLength = CMT_MAX; inp.placeholder = '예) 오늘도 앉아서 출근 성공 😎'; inp.value = cur; inp.autocomplete = 'off';
+  const cnt = document.createElement('span'); cnt.className = 'sub cnt';
+  const upd = () => { cnt.textContent = `${[...inp.value].length}/${CMT_MAX}`; };
+  inp.oninput = upd; upd();
+  const b = document.createElement('button'); b.className = 'go go2'; b.textContent = cur ? '수정' : '등록';
+  const msg = document.createElement('p'); msg.className = 'sub';
+  b.onclick = async () => {
+    const raw = inp.value, t = cleanCmt(raw); if (!t) { inp.focus(); return; }
+    b.disabled = true; msg.textContent = '저장 중…';
+    try { await saveCmt(key, t); inp.value = t; upd(); msg.textContent = t.includes('*') && !raw.includes('*') ? '💬 등록 완료 (일부 단어는 ***로 가려졌어요)' : '💬 등록 완료!'; if (onSaved) onSaved(); }
+    catch (e) { msg.textContent = '저장에 실패했어요. 잠시 후 다시 해 주세요.'; }
+    b.disabled = false;
+  };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') b.click(); });
+  row.append(inp, cnt, b); box.append(head, row, msg);
+  return box;
+}
+// 왼쪽: 점수표 · 오른쪽: 1~10위 말풍선
+function rankCols(L, limit) {
+  const key = boardKey(L);
+  const { el, all } = boardList(L, limit, RK.uid);
+  const wrap = document.createElement('div'); wrap.className = 'rkcols';
+  const left = document.createElement('div'); left.className = 'rkleft'; left.append(el);
+  const right = document.createElement('div'); right.className = 'rkright';
+  const h = document.createElement('div'); h.className = 'rkrh'; h.textContent = '💬 TOP 10 한마디'; right.append(h);
+  let n = 0;
+  all.slice(0, 10).forEach((r, i) => {
+    const t = cmtOf(RK.runs.get(r.id), key); if (!t) return; n++;
+    const it = document.createElement('div'); it.className = 'cmt' + (r.id === RK.uid ? ' me' : '');
+    const who = document.createElement('div'); who.className = 'who'; who.textContent = `${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1 + '위'} ${r.nick}`;
+    const bub = document.createElement('div'); bub.className = 'bub'; bub.textContent = t;
+    it.append(who, bub); right.append(it);
+  });
+  if (!n) { const e = document.createElement('p'); e.className = 'sub'; e.textContent = '아직 한마디가 없어요. 1~10위에 들면 남길 수 있어요!'; right.append(e); }
+  wrap.append(left, right);
+  const myIdx = all.findIndex(r => r.id === RK.uid);
+  return { el: wrap, all, myIdx, key };
 }
 let rankTab = null;
 function openRank(id) { rankTab = id || rankTab; $('rankScreen').classList.add('show'); renderRankScreen(); }
@@ -3185,10 +3513,10 @@ function renderRankScreen() {
     tabs.append(b);
   }
   const body = $('rankBody'); body.innerHTML = '';
-  const { el, all } = boardList({ id: 'D:' + rankTab }, 30, RK.uid);
+  const { el, all, myIdx, key } = rankCols({ id: 'D:' + rankTab }, 30);
   body.append(line(`${today} · 🏁 ${rankTab}역 도착 랭킹 · ${all.length}명 · 출발역은 자유 (멀리서 올수록 고득점 가능)`));
   if (!all.length) body.append(line(RK.state === 'live' ? '아직 오늘 기록이 없어요. 첫 도착자가 되어 보세요!' : '랭킹을 불러오는 중이거나 이 화면에선 쓸 수 없어요.'));
-  else body.append(el);
+  else { if (myIdx >= 0 && myIdx < 10) body.append(cmtForm(key, renderRankScreen)); body.append(el); }
   const st = myStats();
   body.append(line(`내 기록 · 🔥 연속 ${st.streak || 0}일 · 🪑 착석 ${st.wins || 0} · ⏰ 지각 ${st.lates || 0} · 💥 싸움 ${st.fights || 0} · 총 ${st.plays || 0}판`));
 }
@@ -3853,7 +4181,7 @@ $('loading').remove();
 initRanking();
 initRouteForm();
 requestAnimationFrame(loop);
-window.__game = { get G() { return G; }, get P() { return P; }, get seats() { return seats; }, get people() { return people; }, start,
+window.__game = { get RK() { return RK; }, openRank: id => openRank(id), renderEndBoard: h => renderEndBoard(h), sevSpawn: k => sevSpawn(k), sevPick: i => sevPick(i), dozeStart: () => dozeStart(), cleanCmt: t => cleanCmt(t), get G() { return G; }, get P() { return P; }, get seats() { return seats; }, get people() { return people; }, start,
   get gates() { return gates; }, get BONK() { return BONK; }, bonkHit, missedTrain, get qlines() { return qlines; }, get JOURNEY() { return JOURNEY; }, LINES, startLine, planRoute, startJourney, stage2(c = null) { newGame(c); G.started = true; }, setSchedule(o) { SCHEDULE = o; },
   step(sec) { for (let t = 0; t < sec; t += 1 / 30) { if (G.stage === 1) { updateStage1(1 / 30); updateRing(); } else { update(1 / 30); updateSeatsVisual(); } updateCamera(1 / 30); drawHUD(); } } };
 </script>
