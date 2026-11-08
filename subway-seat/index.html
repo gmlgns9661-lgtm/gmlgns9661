@@ -338,16 +338,9 @@
 </div>
 <div class="overlay" id="lineScreen">
   <h1>🚇 오늘의 출근 노선</h1>
-  <div class="daily">
-    <div class="drow"><b>📅 <span id="dayLabel"></span> 오늘의 출근길</b><span id="streakLabel" class="sub"></span></div>
-    <p class="sub">오늘은 모두 <b>같은 승객 배치</b>로 출발해요 (빌런은 매판 랜덤). 노선별 최고 점수로 랭킹 경쟁!</p>
-    <div class="drow">
-      <label for="nickInput" class="sub">닉네임</label><input id="nickInput" maxlength="12" placeholder="랭킹에 표시될 이름" autocomplete="off">
-      <label class="tog"><input type="checkbox" id="dailyToggle" checked> 랭킹 도전</label>
-      <button class="rbtn" id="rankBtn">🏆 랭킹</button>
-    </div>
-    <p class="sub" id="rankNote"></p>
-  </div>
+  <p class="sub" style="margin:4px 0 2px">🚇 노선을 골라 바로 출발</p>
+  <div id="lineCards" style="width:100%"></div>
+  <p class="sub" style="margin:10px 0 2px">또는 내 실제 출근길로</p>
   <div class="rcard" id="routeCard">
     <div class="lhead"><span class="lbadge" style="background:#7a5cff">🗺️</span><b>내 출근길</b><span class="lstars">환승 자동</span></div>
     <p class="ldesc">출발역·도착역만 입력하면 수도권 전 노선에서 실제 경로(환승 포함)를 찾아 그대로 플레이!</p>
@@ -361,8 +354,16 @@
     <p class="ldesc" id="rInfo"></p>
     <button class="rbtn" id="rGo">경로 안내 보고 출근 ▶</button>
   </div>
-  <p class="sub" style="margin:8px 0 2px">또는 대표 혼잡 구간으로 도전</p>
-  <div id="lineCards" style="width:100%"></div>
+  <div class="daily" style="margin-top:10px">
+    <div class="drow"><b>📅 <span id="dayLabel"></span> 오늘의 출근길</b><span id="streakLabel" class="sub"></span></div>
+    <p class="sub">오늘은 모두 <b>같은 승객 배치</b>로 출발해요 (빌런은 매판 랜덤). 노선별 최고 점수로 랭킹 경쟁!</p>
+    <div class="drow">
+      <label for="nickInput" class="sub">닉네임</label><input id="nickInput" maxlength="12" placeholder="랭킹에 표시될 이름" autocomplete="off">
+      <label class="tog"><input type="checkbox" id="dailyToggle" checked> 랭킹 도전</label>
+      <button class="rbtn" id="rankBtn">🏆 랭킹</button>
+    </div>
+    <p class="sub" id="rankNote"></p>
+  </div>
   <p class="sub">PC: 숫자키 1~4로 바로 선택 · 랭킹 도전을 끄면 랜덤 배치 연습 모드</p>
 </div>
 <div class="overlay" id="rankScreen" style="z-index:12">
