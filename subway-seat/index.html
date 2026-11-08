@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
 <title>출근길 자리전쟁 3D</title>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }</script>
 <style>
+  :root { color-scheme: dark; }   /* 폰 브라우저 자동 다크모드가 색을 바꾸지 않게 */
   * { box-sizing: border-box; }
   html, body {
     margin: 0; height: 100%; overflow: hidden; background: #141822; color: #fff;
@@ -32,7 +34,7 @@
   .disc { display: flex; align-items: center; gap: 6px; margin: 5px auto 0; max-width: 420px; font-size: 12px; font-weight: 900; }
   .dlabel { color: #c8cfe0; font-size: 11px; }
   .dbar { flex: 1; height: 10px; background: #2f374a; border-radius: 5px; overflow: hidden; }
-  .dbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #6ee7a1 0%, #ffd23f 55%, #ff4d4d 85%); background-size: 100vw 100%; transition: width .15s; }
+  .dbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #6ee7a1 0%, #ffd23f 55%, #ff4d4d 85%); background-size: 100% 100%; transition: width .15s, background-size .15s; }
   #discNum { min-width: 22px; text-align: right; }
   #buffs { font-size: 11px; color: #c8cfe0; min-width: 0; white-space: nowrap; }
   #rage { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 90px 40px rgba(255,0,0,.65); opacity: 0; }
@@ -100,7 +102,7 @@
   .dinfo.mydoor { border-color: #ffd166; box-shadow: 0 0 10px rgba(255,209,102,.5); }
   .dinfo small { display: block; font-size: 10px; color: #c8cfe0; font-weight: 700; }
   .dbar2 { height: 6px; border-radius: 3px; background: #2f374a; overflow: hidden; margin: 3px 0 2px; }
-  .dbar2 i { display: block; height: 100%; background: linear-gradient(90deg, #6ee7a1, #ffd23f 55%, #ff4d4d); background-size: 92px 100%; }
+  .dbar2 i { display: block; height: 100%; background: linear-gradient(90deg, #6ee7a1, #ffd23f 55%, #ff4d4d); background-size: 100% 100%; }
   .dmine { font-size: 10.5px; margin-top: 2px; } .dmine.ok { color: #a8ffb0; } .dmine.no { color: #ff8a8a; }
   #tapGame { position: absolute; left: 50%; bottom: 210px; width: 170px; height: 170px; transform: translateX(-50%); display: none; }
   #tapGame.show { display: block; }
@@ -1718,6 +1720,7 @@ function drawCommonHUD() {
   $('phoneInfo').style.top = (hh + 8 + ($('warn').classList.contains('show') ? 56 : 0)) + 'px';
   const d = Math.round(P.disc || 0);
   $('discBar').style.width = d + '%';
+  $('discBar').style.backgroundSize = (d > 0 ? 10000 / d : 100) + '% 100%';   // 그라데이션을 게이지 전체 폭 기준으로 (폰에서도 100이면 빨강)
   $('discNum').textContent = d;
   $('discFace').textContent = d >= 85 ? '🤬' : d >= 60 ? '😡' : d >= 35 ? '😣' : '😐';
   $('discNum').style.color = d >= 80 ? '#ff6b6b' : d >= 50 ? '#ffd23f' : '#a8ffb0';
@@ -3867,7 +3870,7 @@ function drawDoorInfo() {
       const myTurn = myIdx * 2 + 1;
       mine = `<div class="dmine ${myTurn <= left ? 'ok' : 'no'}">${myTurn <= left ? '✅ 탈 수 있을 듯' : '❌ 위험! 다른 문?'}</div>`;
     }
-    el.innerHTML = `<b>3-${d + 1}</b> ${dot} ${word}<div class="dbar2"><i style="width:${fill}%"></i></div><small>남은 자리 ${left} · 대기 ${wait}</small>${mine}`;
+    el.innerHTML = `<b>3-${d + 1}</b> ${dot} ${word}<div class="dbar2"><i style="width:${fill}%;background-size:${fill > 0 ? 10000 / fill : 100}% 100%"></i></div><small>남은 자리 ${left} · 대기 ${wait}</small>${mine}`;
     el.classList.toggle('mydoor', d === myD);
   });
 }
