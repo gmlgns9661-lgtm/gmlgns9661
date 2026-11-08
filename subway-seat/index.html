@@ -109,7 +109,8 @@
   .tg-judge { position: absolute; left: 0; right: 0; top: -22px; text-align: center; font-size: 22px; font-weight: 900; text-shadow: 0 0 4px #000; }
   .tg-judge.pf { color: #ffe066; } .tg-judge.gd { color: #7ee0ff; } .tg-judge.ms { color: #ff6b6b; }
   .tg-label { position: absolute; left: -20px; right: -20px; bottom: -6px; text-align: center; font-size: 12px; font-weight: 800; text-shadow: 0 0 3px #000, 0 0 3px #000; }
-  #bonk { position: fixed; inset: 0; z-index: 15; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: radial-gradient(circle, rgba(120,0,20,.88), rgba(20,0,5,.95)); touch-action: none; user-select: none; }
+  #bonk { position: fixed; inset: 0; z-index: 15; display: none; flex-direction: column; align-items: center; justify-content: space-between; padding: 150px 12px 190px; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(150,0,25,.55) 100%); touch-action: none; user-select: none; }
+  #bonk .btop, #bonk .bbot { display: flex; flex-direction: column; align-items: center; gap: 6px; text-shadow: 0 2px 4px #000; }
   #bonk.show { display: flex; }
   .btitle { font-size: 24px; font-weight: 900; color: #fff; text-align: center; padding: 0 12px; }
   .bsub { font-size: 13px; color: #ffd9d9; font-weight: 700; text-align: center; padding: 0 12px; }
@@ -316,12 +317,11 @@
   <button class="go" id="rankClose">닫기</button>
 </div>
 <div id="bonk">
-  <div class="btitle" id="bTitle">💥 싸움 발생!</div>
-  <div class="bsub">뿅망치로 스트레스 해소! 화면을 마구 터치 (PC: Space 연타)</div>
-  <div class="bstage"><div id="bFoe">😠</div><div id="bHammer">🔨</div></div>
-  <div id="bCount">0 HIT</div>
+  <div class="btop"><div class="btitle" id="bTitle">💥 싸움 발생!</div>
+  <div class="bsub">🔨 뿅망치로 스트레스 해소! 화면을 마구 터치 (PC: Space 연타)</div></div>
+  <div class="bbot"><div id="bCount">0 HIT</div>
   <div class="bbar"><i id="bTime"></i></div>
-  <div id="bResult"></div>
+  <div id="bResult"></div></div>
 </div>
 <div class="overlay" id="routeGuide" style="z-index:13">
   <h1>🗺️ 오늘의 출근 경로</h1>
@@ -665,6 +665,7 @@ class Person {
     this.x = SEAT_X[seat.side] + (seat.side ? .04 : -.04); this.z = seat.z;
     this.state = 'seated'; this.setSit(true, seat.side, this.vtype === 'jjeok');
     this.parts.g.rotation.y = this.rot;
+    if (this.setActivity) this.setActivity(this.kind === 'npc' && G && G.stage === 2 ? pickActivity(this.stop) : null);
   }
   standUp() { if (this.seat && this.seat.occ === this) this.seat.occ = null; this.seat = null; this.setSit(false); this.x = FRONT_X[this.side ?? 0] ?? this.x; }
   setSignal(sig) {
@@ -709,6 +710,8 @@ class Person {
     if (this.labelSp && this.sitting) this.labelSp.position.y = 1.58;
     if (this.sigSp) this.sigSp.position.y = top + .25;
     if (this.exSp) this.exSp.position.y = top + .3;
+    if (this.act) this.animateActivity();
+    else if (!this.sitting && this.parts.head.rotation.x) this.parts.head.rotation.set(0, 0, 0);
   }
   exclaim(on) {
     if (on && !this.exSp) { this.exSp = makeSprite(exclaimTex, .38, .38); this.parts.g.add(this.exSp); }
@@ -811,6 +814,7 @@ const toScreen = (() => { const v = new THREE.Vector3(); return (x, y, z) => { v
 function sideDoors() { return G && G.stage === 2 && G.doorSide != null ? DOORS.filter(d => (d.x > 0) === (G.doorSide === 1)) : DOORS; }
 function nearestDoor(p) { let b = DOORS[0], bd = 1e9; for (const d of sideDoors()) { const dd = dist(p, d); if (dd < bd) { bd = dd; b = d; } } return b; }
 function leave(p) {
+  if (p.setActivity && p.act) p.setActivity(null);
   if (p.seat) { const s = p.seat; s.occ = null; p.seat = null; p.setSit(false); p.x = FRONT_X[s.side] * .8; if (!s.blocked) scheduleClaim(s); }
   p.setSignal(null);
   const d = nearestDoor(p);
@@ -1358,7 +1362,7 @@ function update(dt) {
   if (G.phase !== 'end') {
     G.t += dt;
     if (G.phase === 'run') {
-      for (const o of seatedNpcs()) if (o.sig && !o.sigShown && G.t >= o.sigAt) { o.sigShown = true; o.setSignal(o.sig); }
+      for (const o of seatedNpcs()) if (o.sig && !o.sigShown && G.t >= o.sigAt) { o.sigShown = true; o.setSignal(o.sig); if (TRUE_SIG.includes(o.sig) && o.act) { const was = o.act; o.setActivity(null); float(was === 'sleep' ? '(번쩍 깸)' : was === 'book' ? '(책 덮음)' : was === 'game' ? '(게임 끔)' : '(이어폰 뺌)', { x: o.x, y: 1.9, z: o.z }, '#e8ecff', 12, 1.2); } }
       const v = SCHEDULE[G.next];
       if (v && !G.warn && G.runDur - G.t <= 3.2) { G.warn = v; showWarn(v); SFX.siren(8); }
       if (!G.saidThis && G.runDur - G.t <= 7) { G.saidThis = true; announce(sayThis(STATIONS[G.next]), 5); }
@@ -1398,6 +1402,13 @@ function updateCamera(dt) {
   if (G.stage === 1 && (G.phase === 'platform' || G.phase === 'train')) {
     off = portrait ? new THREE.Vector3(0, 15.5, 8.5) : new THREE.Vector3(0, 11, 7.5);
     tgt = new THREE.Vector3(P.x * .8, 0, clamp(P.z - 2.6, -1.6, 1.0));
+  }
+  if (BONK.on) {
+    const f = BONK.foe || P;
+    const mx = (P.x + f.x) / 2, mz = (P.z + f.z) / 2;
+    const ang = Math.atan2(f.x - P.x, f.z - P.z) + Math.PI / 2;
+    off = new THREE.Vector3(Math.sin(ang) * 1.2, 4.4, Math.cos(ang) * 1.2 + 3.0);
+    tgt = new THREE.Vector3(mx, 1.0, mz);
   }
   if (G.winT != null) { G.winT += dt; off = new THREE.Vector3(-Math.sign(P.x) * 1.4, 2.4, 2.6); tgt = new THREE.Vector3(P.x, .9, P.z); }
   const k = 1 - Math.exp(-dt * (G.winT != null ? 2.5 : 5));
@@ -3217,29 +3228,28 @@ function startBonk(foe, reason = 'fight') {
   P.stuck = null; P.search = null; P.squeeze = null; P.pushT = 0;
   if (G.tapGame) { G.tapGame = null; $('tapGame').classList.remove('show'); }
   $('bTitle').innerHTML = reason === 'pink' ? '🤰 “거기 임산부석이잖아요!” 시비 붙음!' : (foe && foe.disc >= 100 ? '💢 옆 사람이 먼저 폭발했다!' : '💥 내 불쾌지수 폭발!');
-  $('bFoe').textContent = '😠'; $('bCount').textContent = '0 HIT'; $('bResult').textContent = '';
+  $('bCount').textContent = '0 HIT'; $('bResult').textContent = '';
+  $('warn').classList.remove('show'); $('cutin').classList.remove('show');
   $('bonk').classList.add('show');
-  SFX.siren(4); G.shake = .8;
+  bonk3dStart();
+  SFX.siren(4); G.shake = .5;
 }
 function bonkHit() {
   if (!BONK.on || BONK.t >= BONK.dur) return;
   BONK.hits++;
-  const f = $('bFoe'), h = $('bHammer');
-  f.textContent = FOE_FACES[1 + (BONK.hits % (FOE_FACES.length - 1))];
-  f.classList.remove('hit'); h.classList.remove('swing'); void f.offsetWidth; f.classList.add('hit'); h.classList.add('swing');
+  bonk3dHit();
   $('bCount').textContent = `${BONK.hits} HIT` + (BONK.hits >= 30 ? ' 🔥🔥' : BONK.hits >= 15 ? ' 🔥' : '');
   tone(880 + (BONK.hits % 5) * 90, 0, .07, 'square', .07, 1400); tone(160, 0, .09, 'triangle', .07);
-  const pop = document.createElement('div'); pop.className = 'bpop'; pop.textContent = pick(['뿅!', '뿅!!', '뿅~', '뾰옹!', '퍽!']);
-  pop.style.left = (40 + rand(-25, 25)) + '%'; pop.style.top = (38 + rand(-12, 12)) + '%';
-  $('bonk').append(pop); setTimeout(() => pop.remove(), 600);
+
 }
 function updateBonk(dt) {
   if (!BONK.on) return;
   BONK.t += dt;
+  bonk3dUpdate(dt);
   $('bTime').style.width = clamp(1 - BONK.t / BONK.dur, 0, 1) * 100 + '%';
   if (BONK.t >= BONK.dur && !BONK.ending) {
     BONK.ending = true;
-    $('bFoe').textContent = '🤝';
+    if (BONK.foe) float('🤝 …죄송합니다', { x: BONK.foe.x, y: 2.2, z: BONK.foe.z }, '#a8ffb0', 16, 1.4);
     $('bResult').textContent = `뿅 ×${BONK.hits}! 속이 시원~ 😌 스트레스 0`;
     SFX.sit();
     setTimeout(endBonk, 1400);
@@ -3247,6 +3257,7 @@ function updateBonk(dt) {
 }
 function endBonk() {
   $('bonk').classList.remove('show');
+  bonk3dEnd();
   const foe = BONK.foe, pink = BONK.reason === 'pink';
   RUN.fights++; RUN.bonks += BONK.hits;
   P.disc = 0; P.discLvl = 0;
@@ -3335,6 +3346,114 @@ function showRouteGuide(plan) {
 $('rgGo').addEventListener('click', () => { $('routeGuide').classList.remove('show'); stopVoice(); if (PLAN) startJourney(PLAN); });
 $('rgBack').addEventListener('click', () => { $('routeGuide').classList.remove('show'); stopVoice(); });
 $('bonk').addEventListener('pointerdown', e => { e.preventDefault(); bonkHit(); });
+
+// ═════════════════════════ 앉은 승객의 행동 (음악·폰게임·독서·꿀잠) ═════════════════════════
+// 오래 갈 사람일수록 꿀잠·독서, 곧 내릴 사람은 음악·가벼운 폰게임 경향 (절대 규칙은 아님 → 신호와 함께 추리)
+const ACTS = { music: '🎧', game: '🎮', book: '📖', sleep: '💤' };
+function pickActivity(stop) {
+  const d = stop >= BEYOND ? 99 : stop - ((G && G.next) || 1);
+  const w = d >= 4 ? [['sleep', 35], ['book', 30], ['game', 25], ['music', 10]]
+          : d >= 2 ? [['game', 35], ['music', 35], ['book', 20], ['sleep', 10]]
+          : [['music', 45], ['game', 30], ['book', 15], ['sleep', 10]];
+  let r = rnd() * 100; for (const [k, v] of w) { r -= v; if (r <= 0) return k; } return 'music';
+}
+Person.prototype.setActivity = function (a) {
+  if (this.actProps) { for (const m of this.actProps) m.parent && m.parent.remove(m); }
+  this.actProps = []; this.act = a || null;
+  if (this.actIcon) { this.parts.g.remove(this.actIcon); this.actIcon = null; }
+  this.parts.head.rotation.set(0, 0, 0);
+  if (!a) return;
+  const { head, root } = this.parts;
+  if (a === 'music') {
+    for (const s of [-1, 1]) this.actProps.push(mesh(new THREE.SphereGeometry(.045, 8, 6), M('#f4f4f4'), s * .25, -.01, .02, head, false));
+  }
+  if (a === 'game') {
+    const ph = mesh(box(.2, .1, .02), new THREE.MeshStandardMaterial({ color: '#111', emissive: '#4ad8ff', emissiveIntensity: .8 }), 0, .78, .34, root, false);
+    ph.rotation.x = -.9; this.actProps.push(ph); this.gameScreen = ph.material;
+  }
+  if (a === 'book') {
+    const bk = new THREE.Group(); bk.position.set(0, .8, .32); bk.rotation.x = -.7; root.add(bk);
+    const cover = pick(['#b03a2e', '#2e5bb0', '#2f7d4f', '#7a4ab0']);
+    for (const s of [-1, 1]) { const pg = mesh(box(.13, .18, .02), M('#f5efe0'), s * .068, 0, 0, bk, false); pg.rotation.y = s * -.25; mesh(box(.135, .185, .01), M(cover), 0, 0, -.012, pg, false); }
+    this.actProps.push(bk); this.bookG = bk;
+  }
+  this.actIcon = makeSprite(iconTex(ACTS[a]), .26, .26); this.actIcon.material.opacity = .9; this.parts.g.add(this.actIcon);
+};
+// 앉은 자세 위에 행동별 움직임을 덧씌움 (sync 다음에 호출)
+Person.prototype.animateActivity = function () {
+  if (!this.sitting || !this.act) return;
+  const t = performance.now() / 1000 + (this.walkT || 0);
+  const { head, arms } = this.parts;
+  if (this.act === 'music') { head.rotation.x = Math.sin(t * 7.5) * .13; head.rotation.z = Math.sin(t * 3.75) * .06; arms[0].rotation.x = arms[1].rotation.x = -.45; }
+  if (this.act === 'game') {
+    const j = Math.sin(t * 28) * .05; arms[0].rotation.x = -1.25 + j; arms[1].rotation.x = -1.25 - j; head.rotation.x = .3;
+    if (this.gameScreen) this.gameScreen.emissiveIntensity = .6 + .4 * Math.abs(Math.sin(t * 6));
+  }
+  if (this.act === 'book') {
+    arms[0].rotation.x = arms[1].rotation.x = -1.1; head.rotation.x = .38;
+    if (this.bookG) this.bookG.rotation.z = Math.sin(t * .6) * .06;
+  }
+  if (this.act === 'sleep') { head.rotation.x = .45 + Math.sin(t * 1.3) * .06; head.rotation.z = .28; arms[0].rotation.x = arms[1].rotation.x = -.25; }
+  if (this.actIcon) {
+    this.actIcon.visible = !this.sigSp && !(this.icon && this.icon.visible);
+    this.actIcon.position.set(-.15, 1.72 + (this.act === 'sleep' ? Math.sin(t * 2) * .05 : 0), 0);
+  }
+};
+
+// ═════════════════════════ 3D 뿅망치: 내 캐릭터가 망치를 꺼내 상대를 때림 ═════════════════════════
+function makeHammer() {
+  const g = new THREE.Group();
+  const handle = mesh(new THREE.CylinderGeometry(.025, .025, .42, 8), M('#ffd23f'), 0, -.21, 0, g, false);
+  const head = mesh(new THREE.CylinderGeometry(.09, .09, .26, 14), M('#ff3b5c', { roughness: .4 }), 0, -.44, 0, g, false);
+  head.rotation.z = Math.PI / 2;
+  for (const s of [-1, 1]) mesh(new THREE.CylinderGeometry(.092, .092, .03, 14), M('#ffd23f'), s * .12, -.44, 0, g, false).rotation.z = Math.PI / 2;
+  return g;
+}
+function bonk3dStart() {
+  const foe = BONK.foe;
+  if (foe && !foe.sitting) {
+    // 상대를 내 앞 0.75m로 (서로 마주봄)
+    let dx = foe.x - P.x, dz = foe.z - P.z, d = Math.hypot(dx, dz) || 1;
+    foe.x = P.x + dx / d * .75; foe.z = P.z + dz / d * .75; foe.target = null;
+  }
+  if (foe) { P.rot = Math.atan2(foe.x - P.x, foe.z - P.z); foe.rot = Math.atan2(P.x - foe.x, P.z - foe.z); P.parts.g.rotation.y = P.rot; foe.parts.g.rotation.y = foe.rot; }
+  BONK.hammer = makeHammer();
+  BONK.hammer.position.set(0, -.3, .05);
+  P.parts.arms[1].add(BONK.hammer);
+  BONK.swing = 0; BONK.squash = 0; BONK.armX = -2.6;
+  float('🔨 뿅망치 꺼냄!', { x: P.x, y: 2.3, z: P.z }, '#ffe066', 16, 1.2);
+}
+function bonk3dHit() {
+  BONK.swing = .15; BONK.squash = .2;
+  const foe = BONK.foe;
+  if (foe) {
+    foe.stun = .45;
+    float(pick(['뿅!', '뿅!!', '뾰옹~', '퍽!', '뿅뿅!']), { x: foe.x + rand(-.25, .25), y: 1.9 + rand(0, .4), z: foe.z }, '#fff', 20 + Math.min(14, BONK.hits / 2), .6);
+  }
+}
+function bonk3dUpdate(dt) {
+  const foe = BONK.foe;
+  P.moving = 0; P.sync(dt);
+  if (foe) { foe.moving = 0; foe.sync(dt); }
+  BONK.swing = Math.max(0, BONK.swing - dt); BONK.squash = Math.max(0, BONK.squash - dt);
+  // 오른팔: 들고 있다가(-2.6) 내려치기(-0.45)
+  const arm = P.parts.arms[1];
+  if (BONK.swing > 0) BONK.armX = lerp(-.45, -2.6, BONK.swing / .15);
+  else BONK.armX = lerp(BONK.armX, -2.6, Math.min(1, dt * 14));
+  arm.rotation.x = BONK.ending ? -.4 : BONK.armX;
+  P.parts.arms[0].rotation.x = -.6;
+  if (foe) {
+    const k = BONK.squash / .2;
+    foe.parts.root.scale.set(1 + .18 * k, 1 - .28 * k, 1 + .18 * k);
+    foe.parts.head.rotation.z = Math.sin(performance.now() / 50) * .2 * k;
+    if (foe.animateActivity) foe.animateActivity();
+  }
+}
+function bonk3dEnd() {
+  if (BONK.hammer) { BONK.hammer.parent && BONK.hammer.parent.remove(BONK.hammer); BONK.hammer = null; }
+  const foe = BONK.foe;
+  if (foe) { foe.parts.root.scale.set(1, 1, 1); foe.parts.head.rotation.set(0, 0, 0); }
+}
 
 // ═════════════════════════ 루프 ═════════════════════════
 let last = performance.now();
