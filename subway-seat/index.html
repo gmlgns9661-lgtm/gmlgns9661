@@ -1875,9 +1875,8 @@ function updateStage1Villains(dt) {
   if (t >= 4 && !G.warned.gate) { G.warned.gate = 1; showWarn('gate', '⚠️ 개찰구 앞 빌런 감지!'); SFX.siren(6); }
   if (t >= 7 && !G.gateV) {
     $('warn').classList.remove('show');
-    const free = gates.filter(g => g.busy !== P && g.openFor !== P);
-    free.sort((a, b) => Math.abs(a.gx - P.x) - Math.abs(b.gx - P.x));
-    const g = free[0];
+    const free = villainGateChoices();
+    const g = pick(free);
     if (g.busy && g.busy !== P) { const b = g.busy; if (b.state === 'tap') { b.state = 'wait'; sendToGate(b); } }
     const p = new Person({ kind: 'villain', vtype: 'gate', look: { coat: '#7a4a8a', pants: '#3b3b44', hair: '#2b2420', longHair: true, handbag: true }, x: g.gx, z: 3.5, label: VILLAINS.gate.name, labelColor: GRADE.orange.color, speed: 2.4 });
     g.blockedBy = p; g.busy = p;
@@ -2274,9 +2273,15 @@ function updateExtraVillains(dt) {
 }
 
 // ═════════════════════════ 추가 빌런 (STAGE 1): 캐리어 폭주족 ═════════════════════════
+// 빌런이 막을 개찰구: 내가 쓰는(줄 선/단말기 앞) 개찰구와 이미 막힌 곳을 빼고 랜덤
+function villainGateChoices() {
+  const mine = myGate && myGate();
+  const c = gates.filter(g => g !== mine && !g.blockedBy && g.busy !== P && g.openFor !== P);
+  return c.length ? c : gates.filter(g => g.busy !== P && g.openFor !== P);
+}
 function spawnSuitcase() {
   const V = VILLAINS.suitcase;
-  const g = gates.filter(x => !x.blockedBy).sort((a, b) => Math.abs(a.gx - P.x) - Math.abs(b.gx - P.x))[0] || gates[1];
+  const g = pick(villainGateChoices()) || gates[1];
   const p = new Person({ kind: 'villain', vtype: 'suitcase', look: { coat: '#c77d2e', pants: '#2d3550', hair: '#2b2420', curly: true }, x: g.gx + rand(-1, 1), z: 6.1, rot: Math.PI, label: V.name, labelColor: GRADE[V.grade].color, speed: .95 });
   const cs = mesh(box(.46, .62, .3), M('#2a6fdb'), 0, .34, 0);
   mesh(box(.04, .3, .04), M('#333'), 0, .45, 0, cs);
