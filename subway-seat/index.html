@@ -266,7 +266,8 @@
   <table>
     <tr><td>📈</td><td>출근길이라 <b>30에서 시작</b>. 사람과 닿을수록·서 있을수록·빌런에게 당할수록 올라감 → <b>100이 되면 😵 출근 중 쓰러짐 = 실패</b></td></tr>
     <tr><td>🔨</td><td>옆 사람 불쾌지수가 100이면 싸움 → 뿅망치 미니게임. 끝나면 <b>내 불쾌지수 +50</b></td></tr>
-    <tr><td>🪑</td><td>앉으면 불쾌지수 <b>-30</b></td></tr>
+    <tr><td>🪑</td><td>앉으면 불쾌지수 <b>-30</b>, 이후 빨리감기 ⏩로 편하게 감</td></tr>
+    <tr><td>🚪</td><td><b>도착역(환승역)에선 문이 열린 동안 직접 "내리기"</b>를 눌러야 함. 놓치면 😱 지나쳐서 되돌아감: -300점, 불쾌지수 +25. 🎧 이어폰 중엔 도착 방송·차임이 안 들려요!</td></tr>
     <tr><td>🧍</td><td>개찰구·승강장은 <b>발자국 줄 끝에 서기</b>. 줄 앞이나 중간에 끼어들면 주변 사람 불쾌지수↑ (머리 위 😒😠🤬)</td></tr>
     <tr><td>🤰</td><td><b>임산부 배려석</b>(분홍)은 늘 비어 있지만… 앉으면 주변 시선 폭발 = 실패</td></tr>
     <tr><td>📉</td><td>아무와도 안 닿으면 천천히 내려감 · <b>빌런 참교육 성공 시 -15</b> · 📱폰 보기 중엔 덜 오름</td></tr>
@@ -834,7 +835,8 @@ function startRun() {
 }
 function startArrival() {
   const k = G.next;
-  if (k >= LAST) return failGame();
+  if (G.overshoot) return doAlight(true);        // 지나친 뒤 다음 역에서 내려 되돌아감
+  if (k >= LAST) return arriveDestination();
   G.phase = 'arrive'; G.t = 0; G.boarded = false; G.refilled = false;
   SFX.chime();
   const v = SCHEDULE[k];
@@ -1150,6 +1152,8 @@ function action() {
   if (!G || G.phase === 'end') return;
   audio();
   if (G.stage === 1) return action1();
+  if (G.alightOpen) return doAlight();
+  if (P.seated) { float(G.ffwd ? '💺 편하게 가는 중…' : '💺 도착역에서 내리기!', { x: P.x, y: 2.2, z: P.z }, '#cfd6ff', 12, .8); return; }
   if (P.stuck) {
     P.stuck.taps++; SFX.squeeze();
     float('빼!', { x: P.x + rand(-.3, .3), y: 2.0, z: P.z }, '#ff9a9a', 14, .5);
@@ -1313,23 +1317,63 @@ function playerSit(s) {
     float('퍽! 가방 반사 +300', { x: SEAT_X[s.side], y: 2.1, z: s.z }, GRADE.orange.color, 18, 1.8);
   }
   if (s.reservedBy) { const w = s.reservedBy; s.reservedBy = null; w.target = null; w.state = 'stand'; }
-  G.endStop = currentStop(); G.phase = 'end';
   P.stuck = null; P.passing = null; P.seated = true;
   P.sitOn(s); P.state = 'seated'; P.parts.g.rotation.y = P.rot;
   $('cutin').classList.remove('show'); $('warn').classList.remove('show');
   laneMesh.material.opacity = 0;
-  G.winT = 0;
-  $('big').textContent = '착석!'; $('big').classList.add('show');
+  G.winT = 0; setTimeout(() => { if (G && G.stage === 2 && G.phase !== 'end') G.winT = null; }, 1700);
+  $('big').textContent = '착석!'; $('big').classList.add('show'); setTimeout(() => { if (G.phase !== 'end') $('big').classList.remove('show'); }, 1500);
   SFX.sit();
-  const remain = LAST - G.endStop;
-  if (JOURNEY) { setTimeout(() => legDone(true, remain), 1800); return; }
-  setTimeout(() => showEnd(true, [
+  G.satAt = currentStop(); G.satRemain = Math.max(0, LAST - G.satAt);
+  setTimeout(() => float('💺 편하게 가는 중 (빨리감기) · 도착역에서 🚪 내리기를 꼭 누르세요!', { x: P.x, y: 2.4, z: P.z }, '#ffe066', 14, 2.6), 900);
+}
+// ── 도착역: 문 열린 동안 직접 내려야 함
+function arriveDestination() {
+  const k = G.next, st = STATIONS[k];
+  G.phase = 'arrive'; G.t = 0; G.boarded = true; G.refilled = true; G.saidClose = false;
+  G.doorSide = doorSideOf(st); G.alightOpen = true;
+  if (!P.earMode) { SFX.chime(); tone(1046, .6, .3, 'sine', .07); }
+  announce(`🚪 ${st}역 도착! 지금 내리기 버튼을 누르세요 (${G.doorSide ? '오른쪽' : '왼쪽'} 문)`, 5);
+  speak(`${st}역입니다. 내리실 분은 서둘러 내리시기 바랍니다.`);
+  for (const p of [...people]) if (p.kind === 'npc' && p.stop === k && p.state !== 'leave') leave(p);
+}
+function doAlight(auto = false) {
+  if (G.phase === 'end') return;
+  G.alightOpen = false; G.overshoot = false;
+  G.endStop = LAST; G.phase = 'end';
+  const sat = G.satRemain != null;
+  $('cutin').classList.remove('show'); $('warn').classList.remove('show'); laneMesh.material.opacity = 0;
+  if (P.seated) { P.seated = false; if (P.seat) { P.seat.occ = null; P.seat = null; } P.setSit(false); }
+  const d = nearestDoor(P); P.goTo(d.x * .9, d.z, 'leave', () => { });
+  SFX.pop(); tone(880, .05, .15, 'sine', .07);
+  const last = !JOURNEY || JOURNEY.idx === JOURNEY.legs.length - 1;
+  $('big').textContent = auto ? '😮‍💨 되돌아와서 내림' : (last ? '🚪 하차!' : '🔁 환승!'); $('big').classList.add('show');
+  const overRow = G.overshot ? [['😱', '내릴 역 지나침 (되돌아감)', -300]] : [];
+  if (JOURNEY) { if (G.overshot) JOURNEY.rows.push(overRow[0]); setTimeout(() => legDone(sat, sat ? G.satRemain : 0), 1400); return; }
+  setTimeout(() => showEnd(sat, sat ? [
     ...stage1Rows(),
-    ['🚉', `남은 ${remain}개 역 편하게 감`, remain * 150],
-    ['😌', `불쾌지수 ${Math.round(P.disc || 0)}에서 착석`, Math.round((100 - (P.disc || 0)) * 3)],
+    ['🚉', `${G.satRemain}개 역 앉아서 감`, G.satRemain * 150],
+    ...overRow,
+    ['😌', `도착 불쾌지수 ${Math.round(P.disc || 0)}`, Math.round((100 - (P.disc || 0)) * 3)],
     ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
     ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
-  ]), 2000);
+  ] : [
+    ...stage1Rows(),
+    ...overRow,
+    ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
+    ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
+  ], sat ? {} : { title: `${STATIONS[LAST]} 도착… 서서 왔다`, desc: '오늘도 서서 출근했다. 내일은 꼭 앉자.' }), 1500);
+}
+// 문 닫힐 때까지 안 내리면: 다음 역까지 갔다가 되돌아옴
+function missedStop() {
+  G.alightOpen = false; G.overshot = true; G.overshoot = true;
+  G.shake = .4; SFX.fail();
+  $('big').textContent = '😱 지나쳤다!'; $('big').classList.add('show');
+  setTimeout(() => { if (G.phase !== 'end') $('big').classList.remove('show'); }, 1600);
+  float(P.earMode ? '🎧 노래 듣다가 내릴 역을 놓쳤다…' : '앗, 문이 닫혔다…', { x: P.x, y: 2.4, z: P.z }, '#ff9a9a', 15, 2);
+  P.disc = Math.min(100, (P.disc || 0) + 25);
+  if (P.disc >= 100) return collapse();
+  G.phase = 'run'; G.t = 0; G.runDur = 9; G.saidThis = true; G.warn = 'x';
 }
 function stage1Rows() {
   const c = G.carry; if (!c) return [];
@@ -1395,7 +1439,12 @@ function update(dt) {
   for (const d of doorPanels) d.m.position.z = d.base + d.dir * (Math.sign(d.m.position.x) === (G.doorSide ? 1 : -1) ? open : 0) * .62;
 
   if (G.phase !== 'end') {
-    G.t += dt;
+    // 앉아서 가는 중엔 빨리감기 (도착역 9초 전부터는 정상 속도)
+    const nearDest = G.next >= LAST && G.phase === 'run' && G.runDur - G.t <= 9;
+    G.ffwd = P.seated && !G.alightOpen && !nearDest && !G.overshoot;
+    G.t += dt * (G.ffwd ? 4 : 1);
+    if (P.seated) P.disc = Math.max(0, (P.disc || 0) - 1 * dt);
+    if (G.phase === 'arrive' && G.alightOpen && G.t >= G.arriveDur) { missedStop(); }
     if (G.phase === 'run') {
       for (const o of seatedNpcs()) if (o.sig && !o.sigShown && G.t >= o.sigAt) { o.sigShown = true; o.setSignal(o.sig); if (TRUE_SIG.includes(o.sig) && o.act) { const was = o.act; o.setActivity(null); float(was === 'sleep' ? '(번쩍 깸)' : was === 'book' ? '(책 덮음)' : was === 'game' ? '(게임 끔)' : was === 'movie' ? '(영화 일시정지)' : was === 'toon' ? '(웹툰 닫음)' : '(이어폰 뺌)', { x: o.x, y: 1.9, z: o.z }, '#e8ecff', 12, 1.2); } }
       const v = SCHEDULE[G.next];
@@ -1407,7 +1456,7 @@ function update(dt) {
       if (v && !G.boarded && G.t >= .2) { G.boarded = true; boardVillain(v); }
       if (!G.refilled && G.t >= 3.0) { G.refilled = true; refill(); }
       if (!G.saidClose && G.t >= G.arriveDur - 1.8) { G.saidClose = true; speak('출입문 닫습니다.'); announce('출입문 닫습니다.', 1.8); }
-      if (G.t >= G.arriveDur) startRun();
+      if (G.t >= G.arriveDur && !G.alightOpen && G.phase === 'arrive') startRun();
     }
     updatePlayer(dt);
     updateDisc(dt);
@@ -1483,7 +1532,7 @@ function drawHUD2() {
   const cur = currentStop();
   $('manner').textContent = `매너 ${P.manner >= 0 ? '+' : ''}${P.manner}`;
   $('manner').style.color = P.manner >= 0 ? '#a8ffb0' : '#ff9a9a';
-  $('station').textContent = G.phase === 'arrive' ? `${STATIONS[G.next]} 도착 · 하차 중` : G.phase === 'run' ? `다음 역: ${STATIONS[G.next]}` : (G.winT != null ? '착석 완료!' : G.endLabel || `${STATIONS[LAST]} 도착`);
+  $('station').textContent = G.overshoot ? '😱 지나침! 다음 역에서 되돌아가는 중' : G.alightOpen ? `🚪 ${STATIONS[G.next]} 도착 · 내리세요!` : G.phase === 'arrive' ? `${STATIONS[G.next]} 도착 · 하차 중` : G.phase === 'run' ? (G.ffwd ? '⏩ ' : '') + `다음 역: ${STATIONS[G.next]}` : (G.winT != null ? '착석 완료!' : G.endLabel || `${STATIONS[LAST]} 도착`);
   $('station').style.color = G.phase === 'arrive' ? '#ffe9a8' : '#fff';
   $('timebar').style.width = (G.phase === 'run' ? clamp(1 - G.t / G.runDur, 0, 1) * 100 : 0) + '%';
   $('timebar').style.background = '#33d17a';
@@ -1505,6 +1554,8 @@ function drawHUD2() {
   // 행동 버튼
   let label = '—', cls = '';
   if (G.phase === 'end') { }
+  else if (G.alightOpen) { label = '🚪 내리기!<br><small>' + STATIONS[LAST] + '</small>'; cls = 'ready'; }
+  else if (P.seated) { label = G.ffwd ? '💺 착석 중<br><small>빨리감기 ⏩</small>' : `💺 곧 ${STATIONS[LAST]}<br><small>내릴 준비!</small>`; cls = G.ffwd ? '' : 'cough'; }
   else if (P.stuck) { label = `🎒 빼기!<br><small>${P.stuck.taps}/${P.stuck.need} 연타</small>`; cls = 'mash'; }
   else if (nearJjeok()) { label = `헛기침<br><small>${G.jjeok.coughs}/3</small>`; cls = 'cough'; }
   else if (nearSpeaker()) { label = `👀 째려보기<br><small>${G.speaker.stares}/4</small>`; cls = 'cough'; }
