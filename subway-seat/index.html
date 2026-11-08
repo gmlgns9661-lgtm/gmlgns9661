@@ -49,6 +49,14 @@
   #gauge i { display: block; height: 100%; width: 0; }
   #gaugeLabel { position: absolute; transform: translate(-50%, -50%); font-size: 11px; font-weight: 900; display: none; text-shadow: 0 0 3px #000, 0 0 3px #000; white-space: nowrap; }
 
+  #stageTitle { position: absolute; left: 0; right: 0; top: 30%; display: none; flex-direction: column; align-items: center; gap: 4px; text-shadow: 0 2px 6px #000; }
+  #stageTitle.show { display: flex; animation: pop .35s ease-out; }
+  #stageTitle b { font-size: 46px; font-weight: 900; letter-spacing: .04em; color: #ffd166; -webkit-text-stroke: 1px #7a4a00; }
+  #stageTitle span { font-size: 15px; font-weight: 800; background: rgba(0,0,0,.6); padding: 4px 12px; border-radius: 999px; }
+  #fade { position: fixed; inset: 0; z-index: 5; background: #0c0f16; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; opacity: 0; pointer-events: none; transition: opacity .35s; }
+  #fade.show { opacity: 1; }
+  #fade b { font-size: 44px; color: #33d17a; }
+  #fade span { font-size: 15px; color: #d8dbe6; font-weight: 700; }
   #big { position: absolute; inset: 0; display: none; place-items: center; font-size: 72px; font-weight: 900; color: #fff; text-shadow: 0 0 0 #c2410c, 4px 4px 0 #c2410c, -2px -2px 0 #c2410c; }
   #big.show { display: grid; animation: pop .35s ease-out; }
   @keyframes pop { from { transform: scale(3); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -107,6 +115,7 @@
   <div id="cutin"><div id="cutFace"></div><div><small id="cutGrade"></small><b id="cutName"></b><span id="cutSkill"></span></div></div>
   <div id="announce"></div>
   <div id="big">착석!</div>
+  <div id="stageTitle"></div>
   <div id="controls">
     <div id="joyZone"><div id="joyBase"><div id="joyKnob"></div></div></div>
     <div id="keyhint">이동 <b>WASD/방향키</b> · 행동 <b>Space</b><br>가방 <b>Q</b> · 폰 <b>F</b></div>
@@ -120,11 +129,17 @@
 
 <div class="overlay show" id="startScreen">
   <h1>🚇 출근길 자리전쟁 3D</h1>
-  <p class="sub">2호선 신림 → 선릉 · 10개 역 안에 앉아라!</p>
+  <p class="sub">2호선 신림역 개찰구 → 선릉 · 출근길 2스테이지</p>
+  <h2>스테이지</h2>
+  <table>
+    <tr><td>1️⃣</td><td><b>개찰구</b>: 45초 안에 카드 찍고 승강장 계단까지. 일찍 탈수록 2스테이지를 <b>객차 안쪽</b>에서 시작</td></tr>
+    <tr><td>2️⃣</td><td><b>자리 쟁탈전</b>: 선릉 도착 전에 앉아라!</td></tr>
+  </table>
   <h2>조작</h2>
   <table>
     <tr><td>🕹️</td><td><b>폰</b>: 왼쪽 아래 조이스틱으로 이동, 오른쪽 큰 버튼 = 행동</td></tr>
     <tr><td>⌨️</td><td><b>PC</b>: WASD/방향키 이동 · Space 행동 · Q 가방 · F 폰</td></tr>
+    <tr><td>💳</td><td>개찰구 단말기 앞에서 <b>행동 버튼</b> = 카드 찍기 (폰 보기 중이면 모바일 카드로 바로!)</td></tr>
     <tr><td>🪑</td><td>빈자리 <b>앞에 서서 행동 버튼</b> = 앉기</td></tr>
     <tr><td>💪</td><td>사람 쪽으로 <b>계속 밀면</b> 비집고 들어감</td></tr>
   </table>
@@ -137,7 +152,7 @@
   <p class="sub">👀 창밖 보기 = 다음다음 역일 수도, 낚시일 수도</p>
   <h2>🎒 가방</h2>
   <table>
-    <tr><td>🔙</td><td><b>뒤로 메기</b>: 비집기 빠름, 대신 <b>40% 확률로 가방이 걸림</b> → 행동 버튼 연타로 빼기</td></tr>
+    <tr><td>🔙</td><td><b>뒤로 메기</b>: 비집기 빠름, 대신 <b>40% 확률로 가방이 걸림</b> → 행동 버튼 연타로 빼기. 개찰구에선 카드 꺼내려면 <b>가방 뒤지기 연타</b></td></tr>
     <tr><td>🔜</td><td><b>앞으로 메기</b>: 비집기 느림, 걸리지 않음 · 매너↑ → 길이 잘 열림</td></tr>
     <tr><td>📱</td><td><b>폰 보기</b>: 환승·하차 정보 대신 시야가 좁아짐</td></tr>
   </table>
@@ -146,6 +161,8 @@
     <tr><td>🟡</td><td><b>쩍벌 대마왕</b>: 옆자리까지 차지 → 앞에서 <b>행동 3번(헛기침)</b></td></tr>
     <tr><td>🟠</td><td><b>전설의 투척러</b>: 가방 던져 자리 예약 → <b>닿기 전에 앉기</b></td></tr>
     <tr><td>🔴</td><td><b>돌격대장 철수옹</b>: 한 줄 돌진 → <b>빨간 줄에서 피하기</b></td></tr>
+    <tr><td>🟠</td><td><b>개찰구 수색대장</b> (1스테이지): 개찰구 막고 카드 찾기 → 옆 개찰구로 or 헛기침 3번</td></tr>
+    <tr><td>🔴</td><td><b>환승 질주러</b> (1스테이지): 대합실 가로 질주 → <b>빨간 줄에서 피하기</b></td></tr>
   </table>
   <button class="go" id="startBtn">출근하기 ▶</button>
   <p class="sub" style="margin-top:10px">소리가 납니다 🔊</p>
@@ -160,6 +177,7 @@
   <table id="endTable"></table>
   <button class="go" id="againBtn">다시 출근하기 ↻</button>
 </div>
+<div id="fade"></div>
 <div id="loading">객차 준비 중… 🚇</div>
 
 <script type="module">
@@ -189,6 +207,8 @@ const VILLAINS = {
   jjeok: { name: '쩍벌 대마왕', face: '😎', grade: 'yellow', skill: '영토 확장', hint: '앞에 서서 행동 3번 = 헛기침!' },
   throw: { name: '전설의 투척러', face: '😤', grade: 'orange', skill: '원거리 예약', hint: '가방이 닿기 전에 앉아라!' },
   boss:  { name: '돌격대장 철수옹', face: '👴', grade: 'red', skill: '자리 직진', hint: '빨간 줄에서 벗어나라!' },
+  gate:  { name: '개찰구 수색대장', face: '🔍', grade: 'orange', skill: '무한 가방 수색', hint: '옆 개찰구로 가거나, 앞에서 헛기침 3번!' },
+  runner:{ name: '환승 질주러', face: '🏃', grade: 'red', skill: '환승 대시', hint: '빨간 줄에서 벗어나라!' },
 };
 const GRADE = {
   yellow: { label: '🟡 주의', color: '#ffd23f', dark: '#5a4a00' },
@@ -291,7 +311,10 @@ const platformMat = new THREE.MeshBasicMaterial({ color: '#e9e3c8' });
 const windows = [];
 const doorPanels = [];
 const seatMeshes = [[], []];
-(function buildCar() {
+const carGroup = new THREE.Group(), stationGroup = new THREE.Group();
+scene.add(carGroup, stationGroup);
+function adopt(group, fn) { const before = new Set(scene.children); fn(); for (const c of [...scene.children]) if (!before.has(c)) group.add(c); }
+adopt(carGroup, function buildCar() {
   const floor = mesh(new THREE.PlaneGeometry(4.2, 12.6), new THREE.MeshStandardMaterial({ map: floorTexture(), roughness: .9 }), 0, 0, -3.0);
   floor.rotation.x = -Math.PI / 2; floor.castShadow = false;
   // 벽 (문 자리 비우기)
@@ -334,7 +357,7 @@ const seatMeshes = [[], []];
   mesh(box(4.3, 2.6, .12), wallMat, 0, 1.3, -9.3);
   mesh(box(.9, 1.9, .05), M('#aab4c6'), 0, .95, -9.22);
   mesh(new THREE.PlaneGeometry(.5, .6), new THREE.MeshBasicMaterial({ color: '#1a2233' }), 0, 1.4, -9.19, scene, false);
-})();
+});
 
 // 돌진 경로 표시 (빨간 줄)
 const laneMesh = new THREE.Mesh(new THREE.PlaneGeometry(.95, Z_MAX - Z_MIN + .6), new THREE.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0, depthWrite: false }));
@@ -540,23 +563,29 @@ function clearWorld() {
   for (const st of seats.flat()) if (st.legSp) { scene.remove(st.legSp); st.legSp = null; }
 }
 
-function newGame() {
+function newGame(carry = null) {
   clearWorld();
+  stationGroup.visible = false; carGroup.visible = true; laneMesh.visible = true; lane2.material.opacity = 0;
+  for (const w of windows) w.material = windowMat;
   seats = [0, 1].map(side => Array.from({ length: SEATS }, (_, i) => ({ side, i, z: seatZ(i), occ: null, blocked: false, bagIncoming: false, claimAt: null, reservedBy: null })));
   G = {
     phase: 'run', t: 0, clock: 0, runDur: 9, arriveDur: 4.8, next: 1, floats: [], bags: [], shake: 0,
     warn: null, cutin: null, boss: null, jjeok: null, thrower: null, announceT: 0, endStop: null, winT: null, thrownAt: -1,
+    stage: 2, carry,
   };
-  P = new Person({ kind: 'player', x: 0, z: 1.6, rot: Math.PI, look: { coat: '#ff7a59', pants: '#2d3550', hair: '#4a2f1f', backpack: true, phone: true }, label: '나', labelColor: '#ffd166' });
-  Object.assign(P, { bag: 'back', bagSwitch: 0, phone: false, manner: 0, counters: 0, stuck: null, passing: null, pushTarget: null, pushT: 0, seated: false, pushMsgT: 0 });
-  P.parts.phone.visible = false;
+  // 스테이지 1 결과: 일찍 탈수록 객차 안쪽(좌석 근처)에서 시작
+  const startZ = !carry ? 1.6 : carry.late ? 2.3 : carry.left >= 15 ? -2.8 : .4;
+  makePlayer(0, startZ, Math.PI);
+  if (carry) { P.manner = carry.manner; P.counters = carry.counters; P.bag = carry.bag; P.phone = carry.phone; P.parts.phone.visible = P.phone; setBagLook(); }
   for (const side of [0, 1]) for (const s of seats[side]) {
     const n = new Person({ look: npcLook(), stop: genStop(1), side });
     n.sitOn(s);
   }
-  for (let i = 0; i < 14; i++) { const sp = freeSpot(); if (!sp) break; new Person({ look: npcLook(), x: sp.x, z: sp.z, rot: rand(-3, 3), stop: genStop(1) }); }
+  const crowd = carry && carry.late ? 16 : 14;
+  for (let i = 0; i < crowd; i++) { const sp = freeSpot(); if (!sp) break; new Person({ look: npcLook(), x: sp.x, z: sp.z, rot: rand(-3, 3), stop: genStop(1) }); }
   assignSignals();
-  announce('이번 열차는 선릉 방면입니다. 자리를 노려보세요!', 3);
+  announce(!carry ? '이번 열차는 선릉 방면입니다. 자리를 노려보세요!' : carry.late ? '문 닫히기 직전 겨우 탑승… 문 앞에 끼어서 출발!' : carry.left >= 15 ? '여유 있게 탑승! 객차 안쪽까지 들어왔다.' : '탑승 완료! 자리를 노려보세요.', 3.5);
+  stageTitle('STAGE 2', '자리 쟁탈전 · 선릉까지 앉아라!');
   $('endScreen').classList.remove('show'); $('big').classList.remove('show');
 }
 
@@ -628,13 +657,17 @@ function refill() {
 
 // ═════════════════════════ 빌런 ═════════════════════════
 const emptySeats = () => seats.flat().filter(s => !s.occ && !s.blocked && !s.bagIncoming);
-function boardVillain(type) {
+function showCutin(type, verb = '빌런 탑승!') {
   const V = VILLAINS[type], gr = GRADE[V.grade];
   const ci = $('cutin'); ci.style.borderColor = gr.color;
-  $('cutFace').textContent = V.face; $('cutGrade').textContent = gr.label + ' 빌런 탑승!'; $('cutGrade').style.color = gr.color;
+  $('cutFace').textContent = V.face; $('cutGrade').textContent = gr.label + ' ' + verb; $('cutGrade').style.color = gr.color;
   $('cutName').textContent = V.name; $('cutSkill').textContent = `필살기 「${V.skill}」 — ${V.hint}`;
   ci.classList.remove('show'); void ci.offsetWidth; ci.classList.add('show');
   G.cutin = 1.5; G.shake = .45; SFX.siren(4); SFX.alarm();
+}
+function boardVillain(type) {
+  const V = VILLAINS[type], gr = GRADE[V.grade];
+  showCutin(type);
   const gc = gr.color;
 
   if (type === 'jjeok') {
@@ -870,6 +903,7 @@ function nearSeat() {
 function action() {
   if (!G || G.phase === 'end') return;
   audio();
+  if (G.stage === 1) return action1();
   if (P.stuck) {
     P.stuck.taps++; SFX.squeeze();
     float('빼!', { x: P.x + rand(-.3, .3), y: 2.0, z: P.z }, '#ff9a9a', 14, .5);
@@ -883,10 +917,35 @@ function action() {
   const occupied = seats.flat().find(s => s.occ && dist(P, front(s)) < .65);
   float(occupied ? '아직 앉아 있다... 신호를 봐!' : '좌석 바로 앞에 서야 앉을 수 있어요', { x: P.x, y: 2, z: P.z }, '#cfd6ff', 12);
 }
+function makePlayer(x, z, rot) {
+  P = new Person({ kind: 'player', x, z, rot, look: { coat: '#ff7a59', pants: '#2d3550', hair: '#4a2f1f', backpack: true, phone: true }, label: '나', labelColor: '#ffd166' });
+  Object.assign(P, { bag: 'back', bagSwitch: 0, phone: false, manner: 0, counters: 0, stuck: null, passing: null, pushTarget: null, pushT: 0, seated: false, pushMsgT: 0, hasCard: false, search: null, retried: false });
+  P.parts.phone.visible = false;
+  P.parts.g.rotation.y = rot;
+}
 function setBagLook() {
   const bag = P.parts.bag;
   if (P.bag === 'back') { bag.position.set(0, .78, -.25); bag.scale.set(1, 1, 1); }
   else { bag.position.set(0, .7, .25); bag.scale.set(.85, .8, .8); }
+}
+// 이동 가능 영역 + 사각 장애물 (스테이지별)
+function bounds() { return G.stage === 1 ? S1_BOUNDS : { x0: -AISLE, x1: AISLE, z0: Z_MIN, z1: Z_MAX }; }
+function clampIn(o) { const b = bounds(); o.x = clamp(o.x, b.x0, b.x1); o.z = clamp(o.z, b.z0, b.z1); }
+function pushOutRects(o, r) {
+  if (G.stage !== 1) return null;
+  let hitFlap = null;
+  for (const R of stage1Rects(o === P)) {
+    const cx = clamp(o.x, R.x0, R.x1), cz = clamp(o.z, R.z0, R.z1);
+    const dx = o.x - cx, dz = o.z - cz, d = Math.hypot(dx, dz);
+    if (d >= r) continue;
+    if (R.flap) hitFlap = R.flap;
+    if (d > 1e-5) { o.x = cx + dx / d * r; o.z = cz + dz / d * r; }
+    else {
+      const opts = [[o.x - R.x0 + r, -1, 0], [R.x1 - o.x + r, 1, 0], [o.z - R.z0 + r, 0, -1], [R.z1 - o.z + r, 0, 1]].sort((a, b) => a[0] - b[0]);
+      o.x += opts[0][1] * opts[0][0]; o.z += opts[0][2] * opts[0][0];
+    }
+  }
+  return hitFlap;
 }
 function updatePlayer(dt) {
   P.stun = Math.max(0, P.stun - dt); P.pushMsgT = Math.max(0, P.pushMsgT - dt);
@@ -909,6 +968,7 @@ function updatePlayer(dt) {
     return;
   }
 
+  const prevZ = P.z;
   let inp = readInput();
   if (P.stun > 0 || P.bagSwitch > 0) inp = { x: 0, z: 0, m: 0 };
   let moved = 0, dx = 0, dz = 0;
@@ -918,7 +978,7 @@ function updatePlayer(dt) {
     P.x += dx * sp * dt; P.z += dz * sp * dt;
     P.rot = Math.atan2(dx, dz); moved = 1;
   }
-  P.x = clamp(P.x, -AISLE, AISLE); P.z = clamp(P.z, Z_MIN, Z_MAX);
+  clampIn(P);
 
   // 충돌 + 비집기
   let pushing = null, bestDot = .55;
@@ -932,7 +992,10 @@ function updatePlayer(dt) {
       if (moved && dot > bestDot) { bestDot = dot; pushing = n; }
     }
   }
-  P.x = clamp(P.x, -AISLE, AISLE); P.z = clamp(P.z, Z_MIN, Z_MAX);
+  clampIn(P);
+  const flap = pushOutRects(P, pRadius());
+  if (G.stage === 1) guardFlaps(prevZ);
+  if (flap && moved && P.pushMsgT <= 0 && !flap.openFor) { float('삑— 카드를 찍어주세요', { x: P.x, y: 2, z: P.z }, '#ffd166', 13); P.pushMsgT = 1.4; SFX.thud(); }
 
   if (pushing && pushing.kind === 'npc') {
     if (!P.pushTarget) SFX.squeeze();
@@ -949,7 +1012,7 @@ function updatePlayer(dt) {
         P.passing = pushing;
         // 상대를 옆으로 살짝 밀어냄
         const px = -dz, pz = dx; const side = Math.sign((pushing.x - P.x) * px + (pushing.z - P.z) * pz) || 1;
-        pushing.x = clamp(pushing.x + px * side * .3, -AISLE, AISLE); pushing.z = clamp(pushing.z + pz * side * .3, Z_MIN, Z_MAX);
+        pushing.x += px * side * .3; pushing.z += pz * side * .3; clampIn(pushing);
         if (P.bag === 'front') { P.manner += 2; float('실례합니다 🙏', { x: P.x, y: 2, z: P.z }, '#a8ffb0', 13, 1); }
         else float('슥-', { x: P.x, y: 2, z: P.z }, '#fff', 13, .7);
       }
@@ -964,16 +1027,16 @@ function updatePlayer(dt) {
 
 // 서 있는 NPC끼리 살짝 밀어내기
 function relaxCrowd(dt) {
-  const st = people.filter(p => p.kind !== 'player' && !p.sitting && (p.state === 'stand' || p.state === 'tele' || p.state === 'dizzy'));
+  const st = people.filter(p => p.kind !== 'player' && !p.sitting && (p.state === 'stand' || p.state === 'tele' || p.state === 'dizzy' || p.state === 'wait'));
   for (let i = 0; i < st.length; i++) for (let j = i + 1; j < st.length; j++) {
     const a = st[i], b = st[j]; const dx = a.x - b.x, dz = a.z - b.z, d = Math.hypot(dx, dz), m = .5;
     if (d < m && d > 1e-4) { const k = (m - d) / 2 * Math.min(1, dt * 4) / d; a.x += dx * k; a.z += dz * k; b.x -= dx * k; b.z -= dz * k; }
   }
   for (const p of st) {
-    p.x = clamp(p.x, -AISLE, AISLE); p.z = clamp(p.z, Z_MIN, Z_MAX);
+    clampIn(p);
     if (P.passing === p) continue;
     const dx = p.x - P.x, dz = p.z - P.z, d = Math.hypot(dx, dz), m = pRadius() + NPC_R;
-    if (d < m - .05 && d > 1e-4 && P.passing !== p && !P.stuck) { p.x = clamp(p.x + dx / d * dt * .3, -AISLE, AISLE); p.z = clamp(p.z + dz / d * dt * .3, Z_MIN, Z_MAX); }
+    if (d < m - .05 && d > 1e-4 && P.passing !== p && !P.stuck) { p.x += dx / d * dt * .3; p.z += dz / d * dt * .3; clampIn(p); }
   }
 }
 
@@ -1000,16 +1063,22 @@ function playerSit(s) {
   SFX.sit();
   const remain = LAST - G.endStop;
   setTimeout(() => showEnd(true, [
+    ...stage1Rows(),
     ['🚉', `남은 ${remain}개 역 편하게 감`, remain * 150],
     ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
     ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
   ]), 2000);
+}
+function stage1Rows() {
+  const c = G.carry; if (!c) return [];
+  return [c.late ? ['💳', '개찰구: 문 닫히기 직전 탑승', -100] : ['💳', `개찰구: 열차 도착 ${c.left}초 전 탑승`, c.left * 10]];
 }
 function failGame() {
   G.endStop = LAST; G.phase = 'end';
   SFX.fail(); announce(`${STATIONS[LAST]} 도착. 오늘도 서서 출근...`, 5);
   $('big').textContent = '회사 도착…'; $('big').classList.add('show');
   setTimeout(() => showEnd(false, [
+    ...stage1Rows(),
     ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
     ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
   ]), 1600);
@@ -1067,9 +1136,9 @@ function update(dt) {
   for (const p of people) if (p !== P) p.update(dt);
   relaxCrowd(dt);
 }
-function showWarn(type) {
+function showWarn(type, title) {
   const V = VILLAINS[type], gr = GRADE[V.grade];
-  $('warnT').textContent = `⚠️ 다음 역(${STATIONS[G.next]})에서 빌런 탑승 감지!`;
+  $('warnT').textContent = title || `⚠️ 다음 역(${STATIONS[G.next]})에서 빌런 탑승 감지!`;
   $('warnS').textContent = `${gr.label} · 정체를 맞혀보세요`;
   $('warn').querySelector('.sil').style.color = gr.color;
   $('warn').dataset.c1 = gr.color; $('warn').dataset.c2 = gr.dark;
@@ -1106,12 +1175,17 @@ function drawMap() {
   x.font = `${12 * s}px ${EMOJI_FONT}`; x.textAlign = 'center'; x.fillText('🚃', lerp(x0, x1, pos / LAST), ly + 15 * s);
 }
 function drawHUD() {
+  if (G.stage === 1) drawHUD1(); else drawHUD2();
+  drawCommonHUD();
+}
+function drawHUD2() {
   const cur = currentStop();
   $('manner').textContent = `매너 ${P.manner >= 0 ? '+' : ''}${P.manner}`;
   $('manner').style.color = P.manner >= 0 ? '#a8ffb0' : '#ff9a9a';
   $('station').textContent = G.phase === 'arrive' ? `${STATIONS[G.next]} 도착 · 하차 중` : G.phase === 'run' ? `다음 역: ${STATIONS[G.next]}` : (G.winT != null ? '착석 완료!' : `${STATIONS[LAST]} 도착`);
   $('station').style.color = G.phase === 'arrive' ? '#ffe9a8' : '#fff';
   $('timebar').style.width = (G.phase === 'run' ? clamp(1 - G.t / G.runDur, 0, 1) * 100 : 0) + '%';
+  $('timebar').style.background = '#33d17a';
   $('remain').textContent = `목적지 ${STATIONS[LAST]}까지 ${Math.max(0, LAST - cur)}역`;
   drawMap();
   // 경보 깜빡임
@@ -1128,15 +1202,24 @@ function drawHUD() {
     vi.style.display = 'block';
   } else { pi.style.display = 'none'; vi.style.display = 'none'; }
   // 행동 버튼
-  const b = $('btnAct');
   let label = '—', cls = '';
   if (G.phase === 'end') { }
   else if (P.stuck) { label = `🎒 빼기!<br><small>${P.stuck.taps}/${P.stuck.need} 연타</small>`; cls = 'mash'; }
   else if (nearJjeok()) { label = `헛기침<br><small>${G.jjeok.coughs}/3</small>`; cls = 'cough'; }
   else if (nearSeat()) { label = '🪑<br>앉기!'; cls = 'ready'; }
   else label = '행동<br><small>Space</small>';
+  setActBtn(label, cls);
+}
+function setActBtn(label, cls) {
+  const b = $('btnAct');
   if (b.dataset.l !== label) { b.innerHTML = label; b.dataset.l = label; }
   b.className = 'b ' + cls;
+}
+function drawCommonHUD() {
+  $('manner').textContent = `매너 ${P.manner >= 0 ? '+' : ''}${P.manner}`;
+  $('manner').style.color = P.manner >= 0 ? '#a8ffb0' : '#ff9a9a';
+  const w = $('warn');
+  if (w.classList.contains('show')) w.style.background = Math.floor(G.clock * 6) % 2 ? w.dataset.c1 : w.dataset.c2;
   $('btnBag').className = 'b' + (P.bag === 'front' ? ' front' : '');
   $('btnBag').innerHTML = P.bagSwitch > 0 ? '🎒 메는 중…' : (P.bag === 'back' ? '🎒 뒤로<small>빠름·걸림주의</small>' : '🎒 앞으로<small>느림·매너↑</small>');
   $('btnPhone').className = 'b' + (P.phone ? ' on' : '');
@@ -1179,15 +1262,418 @@ function updateSeatsVisual() {
     if (s.blocked && !s.occ) { if (!s.legSp) { s.legSp = makeSprite(iconTex('🦵'), .4, .4); s.legSp.position.set(SEAT_X[s.side], .8, s.z); scene.add(s.legSp); } }
     else if (s.legSp) { scene.remove(s.legSp); s.legSp = null; }
   }
+  updateRing();
+}
+function updateRing() {
   ring.position.x = P.x; ring.position.z = P.z; ring.visible = !P.seated;
   ring.material.color.set(P.stuck ? '#ff4d4d' : P.passing ? '#6ee7a1' : '#ffd166');
+}
+
+// ═════════════════════════ 스테이지 1: 개찰구 ═════════════════════════
+const S1_TIME = 45;
+const GATE_X = [-2, -1, 0, 1, 2];
+const GATE_Z = -1.0;                       // 개찰구 라인
+const STAIRS_Z = -5.9;                     // 여기까지 오면 탑승
+const S1_BOUNDS = { x0: -3.5, x1: 3.5, z0: -8.0, z1: 6.2 };
+const S1_STATIC_RECTS = [];
+for (let k = 0; k < 6; k++) { const cx = -2.5 + k; S1_STATIC_RECTS.push({ x0: cx - .1, x1: cx + .1, z0: GATE_Z - .65, z1: GATE_Z + .65 }); }
+S1_STATIC_RECTS.push({ x0: -4, x1: -2.6, z0: GATE_Z - .1, z1: GATE_Z + .1 }, { x0: 2.6, x1: 4, z0: GATE_Z - .1, z1: GATE_Z + .1 });
+S1_STATIC_RECTS.push({ x0: -2.25, x1: -1.75, z0: 2.75, z1: 3.25 }, { x0: 1.75, x1: 2.25, z0: 2.75, z1: 3.25 });
+S1_STATIC_RECTS.push({ x0: -4, x1: -3.15, z0: 1.4, z1: 4.6 });
+let gates = [];
+
+const lane2 = new THREE.Mesh(new THREE.PlaneGeometry(7.2, .95), new THREE.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0, depthWrite: false }));
+lane2.rotation.x = -Math.PI / 2; lane2.position.y = .016; scene.add(lane2);
+
+function signTex(lines, w, h, bg, key) {
+  return canvasTex(key, w, h, (x) => {
+    x.fillStyle = bg; x.fillRect(0, 0, w, h);
+    for (const l of lines) { x.font = `${l.w || 900} ${l.s}px ${TEXT_FONT}`; x.fillStyle = l.c; x.textAlign = l.a || 'center'; x.textBaseline = 'middle'; x.fillText(l.t, l.x ?? w / 2, l.y); }
+  });
+}
+let boardCanvas, boardTex;
+adopt(stationGroup, function buildStation() {
+  // 바닥 (대합실 + 승강장 계단)
+  const fl = mesh(new THREE.PlaneGeometry(7.4, 11.2), new THREE.MeshStandardMaterial({ color: '#d8d2c4', map: floorTexture(), roughness: .9 }), 0, 0, .55);
+  fl.rotation.x = -Math.PI / 2; fl.castShadow = false;
+  // 점자블록 (개찰구로 이어지는 노란 길)
+  for (let z = GATE_Z + .9; z < 6.2; z += .5) mesh(box(.3, .01, .3), M('#f2c200'), 0, .005, z, scene, false);
+  // 벽
+  const wall = M('#e4e2dc');
+  mesh(box(.15, 3.2, 14.6), wall, -3.75, 1.6, -.8); mesh(box(.15, 3.2, 14.6), wall, 3.75, 1.6, -.8);
+  mesh(box(.04, .12, 14.6), M('#33d17a'), -3.66, 2.4, -.8, scene, false); mesh(box(.04, .12, 14.6), M('#33d17a'), 3.66, 2.4, -.8, scene, false);
+  // 기둥
+  for (const x of [-2, 2]) mesh(box(.5, 3.2, .5), M('#cfd4dd'), x, 1.6, 3);
+  // 교통카드 충전기
+  for (const z of [2.0, 3.0, 4.0]) { const m = mesh(box(.6, 1.5, .8), M('#2f6aa8'), -3.45, .75, z); mesh(box(.02, .4, .5), new THREE.MeshBasicMaterial({ color: '#9fd3f0' }), .31, .3, 0, m, false); }
+  // 개찰구 캐비닛 + 카드 단말기
+  for (let k = 0; k < 6; k++) {
+    const cx = -2.5 + k;
+    const cab = mesh(box(.3, 1.0, 1.3), M('#c9ced8', { metalness: .35, roughness: .4 }), cx, .5, GATE_Z);
+    mesh(box(.31, .08, 1.3), M('#33d17a'), 0, .5, 0, cab, false);
+    if (k < 5) { // 오른쪽 통로의 단말기 (통로 기준 왼쪽 캐비닛 위)
+      const pad = mesh(box(.22, .05, .26), new THREE.MeshStandardMaterial({ color: '#ffd23f', emissive: '#a07800', emissiveIntensity: .6 }), .0, .53, .35, cab, false);
+      pad.name = 'pad';
+    }
+  }
+  // 펜스
+  mesh(box(1.2, 1.0, .08), M('#9aa6bd', { transparent: true, opacity: .75 }), -3.15, .5, GATE_Z);
+  mesh(box(1.2, 1.0, .08), M('#9aa6bd', { transparent: true, opacity: .75 }), 3.15, .5, GATE_Z);
+  // 표지판
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(5.4, .7), new THREE.MeshBasicMaterial({ map: signTex([
+    { t: '② 신림 Sillim', s: 44, c: '#fff', y: 40, x: 30, a: 'left' }, { t: '타는 곳 · 선릉 방면 ↓', s: 40, c: '#b8ffcf', y: 40, x: 740, a: 'right' }], 768, 100, '#1f8f4e', 'SIGN1') }));
+  sign.position.set(0, 2.55, GATE_Z - .2); scene.add(sign);
+  // 열차 도착 안내판
+  boardCanvas = document.createElement('canvas'); boardCanvas.width = 512; boardCanvas.height = 96;
+  boardTex = new THREE.CanvasTexture(boardCanvas); boardTex.colorSpace = THREE.SRGBColorSpace;
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(2.4, .45), new THREE.MeshBasicMaterial({ map: boardTex }));
+  board.position.set(0, 1.95, GATE_Z - .2); scene.add(board);
+  // 계단 (승강장으로 내려감)
+  for (let k = 0; k < 8; k++) mesh(box(6.6, .2, .4), M(k % 2 ? '#bdb6a6' : '#c9c2b2'), 0, -.1 - k * .18, -5.6 - k * .4);
+  const down = new THREE.Mesh(new THREE.PlaneGeometry(3.2, .55), new THREE.MeshBasicMaterial({ map: signTex([{ t: '⬇ 승강장 · 2호선 선릉 방면', s: 34, c: '#fff', y: 32 }], 512, 64, '#2b3a55', 'SIGN2') }));
+  down.position.set(0, 2.3, -5.3); scene.add(down);
+  // 입구 표시
+  const ent = new THREE.Mesh(new THREE.PlaneGeometry(2.4, .45), new THREE.MeshBasicMaterial({ map: signTex([{ t: '출입구 ↑ 신림역 3번', s: 30, c: '#1c2130', y: 32 }], 512, 64, '#ffd23f', 'SIGN3') }));
+  ent.position.set(0, 2.4, 6.3); ent.rotation.y = Math.PI; scene.add(ent);
+});
+stationGroup.visible = false;
+const padMeshes = [];
+stationGroup.traverse(m => { if (m.name === 'pad') padMeshes.push(m); });
+function drawBoard(sec) {
+  const x = boardCanvas.getContext('2d');
+  x.fillStyle = '#111'; x.fillRect(0, 0, 512, 96);
+  x.font = `900 36px ${TEXT_FONT}`; x.textBaseline = 'middle';
+  x.fillStyle = '#ffb000'; x.textAlign = 'left'; x.fillText('선릉행', 18, 48);
+  x.fillStyle = sec <= 10 ? '#ff5a5a' : '#ffb000'; x.textAlign = 'right';
+  x.fillText(sec > 0 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} 후 도착` : '진입 중!', 494, 48);
+  boardTex.needsUpdate = true;
+}
+
+function stage1Rects(forPlayer) {
+  if (!forPlayer) return S1_STATIC_RECTS;
+  const out = S1_STATIC_RECTS.slice();
+  for (const g of gates) if (g.openFor !== P) out.push({ x0: g.gx - .36, x1: g.gx + .36, z0: GATE_Z - .06, z1: GATE_Z + .06, flap: g });
+  return out;
+}
+
+function stageTitle(t, sub) {
+  const el = $('stageTitle'); el.innerHTML = `<b>${t}</b><span>${sub}</span>`;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 1900);
+}
+
+function newStage1() {
+  clearWorld();
+  stationGroup.visible = true; carGroup.visible = false; laneMesh.visible = false; lane2.material.opacity = 0;
+  G = {
+    stage: 1, phase: 'gate', t: 0, clock: 0, timeLeft: S1_TIME, next: 1, floats: [], bags: [], shake: 0, announceT: 0, cutin: 0,
+    endStop: null, winT: null, spawnT: 0, warned: {}, gateV: null, runner: null, boardSec: -1, carry: null,
+  };
+  for (const g of gates) for (const f of g.flaps) stationGroup.remove(f.pivot);
+  gates = GATE_X.map((gx, i) => ({ i, gx, busy: null, openFor: null, npcOpen: 0, open: 0, blockedBy: null, flaps: [] }));
+  makePlayer(rand(-1, 1), 5.6, Math.PI);
+  for (let i = 0; i < 9; i++) spawnFlow(rand(.2, 5.5));
+  $('endScreen').classList.remove('show'); $('big').classList.remove('show');
+  announce('신림역 도착! 카드 찍고 승강장까지 가세요. 열차가 곧 들어옵니다.', 3.5);
+  stageTitle('STAGE 1', '개찰구 통과 · 카드 찍고 열차 타기');
+  drawBoard(S1_TIME);
+}
+
+function chooseGate() {
+  let best = null, bc = 1e9;
+  for (const g of gates) {
+    if (g.blockedBy) continue;
+    const c = people.filter(p => p.gate === g && (p.state === 'flow' || p.state === 'wait' || p.state === 'tap')).length + Math.random() * .8;
+    if (c < bc) { bc = c; best = g; }
+  }
+  return best || gates[2];
+}
+function spawnFlow(z = 6.2) {
+  const n = new Person({ look: npcLook(), x: rand(-2.8, 2.8), z, rot: Math.PI, speed: rand(1.4, 2.0) });
+  sendToGate(n);
+  return n;
+}
+function sendToGate(n) {
+  const g = chooseGate(); n.gate = g;
+  n.goTo(g.gx + rand(-.12, .12), GATE_Z + .75 + rand(0, .7), 'flow', () => { n.state = 'wait'; n.rot = Math.PI; });
+}
+
+function updateGates(dt) {
+  for (const g of gates) {
+    // NPC 차례
+    if (!g.busy && gateAtPlayer() !== g) {
+      let who = null, bd = 1.3;
+      for (const p of people) if (p.gate === g && p.state === 'wait' && p.stun <= 0) { const d = Math.hypot(p.x - g.gx, p.z - (GATE_Z + .75)); if (d < bd) { bd = d; who = p; } }
+      if (who) { g.busy = who; who.state = 'tap'; who.tapT = rand(.35, .9); who.goTo(g.gx, GATE_Z + .7, 'tap', () => { who.state = 'tap'; }); }
+    }
+    const b = g.busy;
+    if (b && b !== P && b.kind === 'npc') {
+      if (b.state === 'tap' && !b.target) {
+        b.tapT -= dt;
+        if (b.tapT <= 0) {
+          g.npcOpen = 1.3; b.state = 'pass';
+          if (Math.random() < .35) float('삑', { x: g.gx + .3, y: 1.4, z: GATE_Z + .4 }, '#ffd23f', 12, .7);
+          b.speed = 1.8;
+          b.goTo(g.gx, GATE_Z - 1.1, 'pass', () => { b.goTo(rand(-2.6, 2.6), -7.6, 'leave', () => b.remove()); });
+        }
+      }
+      if (!people.includes(b) || b.z < GATE_Z - .8 || (b.state !== 'tap' && b.state !== 'pass')) g.busy = null;
+    }
+    if (g.busy === P) {
+      if (P.z < GATE_Z - .7) { g.busy = null; g.openFor = null; P.retried = false; }
+      else if (Math.hypot(P.x - g.gx, P.z - (GATE_Z + .7)) > 1.3) { g.busy = null; g.openFor = null; P.search = null; }
+    }
+    if (g.openFor === P && P.z < GATE_Z - .7) g.openFor = null;
+    g.npcOpen = Math.max(0, g.npcOpen - dt);
+    const target = (g.openFor === P || g.npcOpen > 0) ? 1 : 0;
+    g.open = lerp(g.open, target, Math.min(1, dt * 10));
+    const pad = padMeshes[g.i];
+    if (pad) { pad.material.emissive.set(g.openFor === P || g.npcOpen > 0 ? '#1fa85a' : (g.blockedBy ? '#c0392b' : '#a07800')); }
+  }
+}
+function drawFlaps() {
+  // 플랩: 통로 양쪽 반투명 판 (gates 생성 시 한 번만 만들기)
+  for (const g of gates) {
+    if (!g.flaps.length) {
+      for (const s of [-1, 1]) {
+        const pivot = new THREE.Group(); pivot.position.set(g.gx + s * .35, .62, GATE_Z); stationGroup.add(pivot);
+        const m = mesh(box(.33, .45, .03), new THREE.MeshStandardMaterial({ color: '#e05050', transparent: true, opacity: .75 }), -s * .165, 0, 0, pivot, false);
+        g.flaps.push({ pivot, s, m });
+      }
+    }
+    for (const f of g.flaps) { f.pivot.rotation.y = f.s * g.open * 1.45; f.m.material.color.set(g.open > .5 ? '#33d17a' : '#e05050'); }
+  }
+}
+
+// 사람에게 밀려서 닫힌 플랩을 통과하지 않도록
+function guardFlaps(prevZ) {
+  const r = pRadius();
+  for (const g of gates) {
+    if (g.openFor === P || Math.abs(P.x - g.gx) > .45) continue;
+    if (prevZ >= GATE_Z) P.z = Math.max(P.z, GATE_Z + .06 + r);
+    else P.z = Math.min(P.z, GATE_Z - .06 - r);
+  }
+}
+function gateAtPlayer() {
+  for (const g of gates) if (Math.abs(P.x - g.gx) < .38 && P.z > GATE_Z + .2 && P.z < GATE_Z + 1.25) return g;
+  return null;
+}
+function nearGateVillain() { const V = G.gateV; return V && !V.done && dist(P, V.p) < 1.05; }
+
+function action1() {
+  if (P.stuck) { P.stuck.taps++; SFX.squeeze(); float('빼!', { x: P.x + rand(-.3, .3), y: 2.0, z: P.z }, '#ff9a9a', 14, .5); return; }
+  if (P.stun > 0) { float('어질어질...', { x: P.x, y: 2, z: P.z }, '#ccc', 13, .7); return; }
+  if (P.bagSwitch > 0 || G.phase !== 'gate') return;
+  if (nearGateVillain()) return cough1();
+  const g = gateAtPlayer();
+  if (!g) { float('개찰구 단말기 앞에서 찍어요 💳', { x: P.x, y: 2, z: P.z }, '#cfd6ff', 12); return; }
+  if (g.blockedBy) { float('수색대장이 막고 있다… 옆 개찰구로!', { x: P.x, y: 2, z: P.z }, '#ffb3b3', 13); return; }
+  if (g.busy && g.busy !== P) { float('앞사람이 찍는 중…', { x: P.x, y: 2, z: P.z }, '#cfd6ff', 12); return; }
+  if (g.openFor === P) { float('열렸어요! 지나가세요 ⬆', { x: P.x, y: 2, z: P.z }, '#a8ffb0', 13); return; }
+  g.busy = P;
+  // 카드 꺼내기
+  if (P.search) {
+    if (P.search.auto) return;
+    P.search.taps++; SFX.squeeze();
+    float('뒤적뒤적', { x: P.x + rand(-.3, .3), y: 2.0, z: P.z }, '#ffd9a8', 13, .5);
+    if (P.search.taps >= P.search.need) { P.search = null; P.hasCard = true; SFX.pop(); float('찾았다! 💳', { x: P.x, y: 2.1, z: P.z }, '#fff', 16); }
+    return;
+  }
+  if (!P.hasCard && !P.phone) {
+    if (P.bag === 'back') {
+      P.search = { taps: 0, need: 5, t: 0 };
+      float('카드가 등 뒤 가방에… 연타로 찾기!', { x: P.x, y: 2.1, z: P.z }, '#ffb347', 14, 1.6); SFX.stuck();
+    } else {
+      P.search = { auto: .45, t: 0 };
+      float('앞가방에서 슥 💳', { x: P.x, y: 2.1, z: P.z }, '#a8ffb0', 14);
+    }
+    return;
+  }
+  // 찍기
+  if (!P.retried && Math.random() < .15) {
+    P.retried = true; tone(300, 0, .25, 'square', .06);
+    float('카드를 한 장만 대주세요', { x: g.gx, y: 1.8, z: GATE_Z + .4 }, '#ff9a9a', 14, 1.4);
+    return;
+  }
+  g.openFor = P; SFX.pop(); tone(1320, .05, .12, 'sine', .08);
+  float(P.phone ? '삑! 모바일 승차입니다 📱' : '삑! 승차입니다', { x: g.gx, y: 1.8, z: GATE_Z + .4 }, '#7ee0ff', 15);
+}
+function cough1() {
+  const V = G.gateV;
+  V.coughs++; SFX.cough();
+  float('에헴!' + '!'.repeat(V.coughs - 1), { x: P.x, y: 2.0, z: P.z }, '#ffd23f', 16 + V.coughs * 4);
+  if (V.coughs >= 3) { gateVillainFound(true); }
+}
+function gateVillainFound(byPlayer) {
+  const V = G.gateV; if (!V || V.done) return;
+  V.done = true;
+  const g = V.gate, p = V.p;
+  float('아… 주머니에 있었네 😅', { x: p.x, y: 2.0, z: p.z }, '#fff', 14, 1.6);
+  if (byPlayer) { P.counters++; G.shake = .25; float('참교육 성공! +300', null, GRADE.orange.color, 20, 1.8); }
+  g.npcOpen = 1.4; g.blockedBy = null;
+  p.state = 'pass'; p.speed = 1.6;
+  p.goTo(g.gx, GATE_Z - 1.1, 'pass', () => { g.busy = null; p.goTo(0, -7.6, 'leave', () => p.remove()); });
+}
+
+function updateStage1Villains(dt) {
+  const t = G.t;
+  // 🟠 개찰구 수색대장
+  if (t >= 4 && !G.warned.gate) { G.warned.gate = 1; showWarn('gate', '⚠️ 개찰구 앞 빌런 감지!'); SFX.siren(6); }
+  if (t >= 7 && !G.gateV) {
+    $('warn').classList.remove('show');
+    const free = gates.filter(g => g.busy !== P && g.openFor !== P);
+    free.sort((a, b) => Math.abs(a.gx - P.x) - Math.abs(b.gx - P.x));
+    const g = free[0];
+    if (g.busy && g.busy !== P) { const b = g.busy; if (b.state === 'tap') { b.state = 'wait'; sendToGate(b); } }
+    const p = new Person({ kind: 'villain', vtype: 'gate', look: { coat: '#7a4a8a', pants: '#3b3b44', hair: '#2b2420', longHair: true, handbag: true }, x: g.gx, z: 3.5, label: VILLAINS.gate.name, labelColor: GRADE.orange.color, speed: 2.4 });
+    g.blockedBy = p; g.busy = p;
+    for (const n of people) if (n.gate === g && n.kind === 'npc' && (n.state === 'flow' || n.state === 'wait')) sendToGate(n);
+    p.goTo(g.gx, GATE_Z + .7, 'board', () => { p.state = 'stand'; p.rot = Math.PI; });
+    G.gateV = { p, gate: g, coughs: 0, coughT: 0, done: false, msgT: 1.5, t0: t };
+    showCutin('gate', '빌런 출현!');
+  }
+  const V = G.gateV;
+  if (V && !V.done) {
+    if (V.coughs > 0) { V.coughT += dt; if (V.coughT > 2.5) { V.coughs = 0; V.coughT = 0; } }
+    V.msgT -= dt;
+    if (V.msgT <= 0 && V.p.state === 'stand') { V.msgT = 2.6; float(pick(['가방 뒤지는 중…', '어… 카드 어디 갔지', '지갑… 지갑…', '잠깐만요~']), { x: V.p.x, y: 2.1, z: V.p.z }, '#ffd9a8', 12, 1.4); V.p.mood = .6; }
+    // 줄 선 사람들 짜증
+    for (const n of people) if (n.gate === V.gate && n.kind === 'npc' && n.state === 'wait') n.mood = .5;
+    if (t - V.t0 > 26) gateVillainFound(false);
+  }
+
+  // 🔴 환승 질주러
+  if (t >= 17 && !G.warned.runner) { G.warned.runner = 1; showWarn('runner', '⚠️ 환승 질주러 접근 중!'); SFX.siren(8); }
+  if (t >= 20 && !G.runner) {
+    $('warn').classList.remove('show');
+    const laneZ = clamp(P.z, GATE_Z + 1.0, 5.6);
+    const p = new Person({ kind: 'villain', vtype: 'runner', look: { coat: '#2b6cb0', pants: '#222', hair: '#111' }, x: -3.3, z: laneZ, rot: Math.PI / 2, label: VILLAINS.runner.name, labelColor: GRADE.red.color, speed: 8.5 });
+    p.state = 'tele';
+    G.runner = { p, laneZ, state: 'tele', at: G.clock, hitPlayer: false, hit: new Set() };
+    showCutin('runner', '빌런 출현!');
+  }
+  const R = G.runner;
+  if (R) {
+    const p = R.p;
+    if (R.state === 'tele') {
+      lane2.position.z = R.laneZ;
+      lane2.material.opacity = .28 + .2 * Math.sin(G.clock * 20);
+      p.exclaim(true);
+      if (G.clock - R.at > 1.6) {
+        R.state = 'run'; p.exclaim(false); p.state = 'charge'; SFX.whoosh(); G.shake = .25;
+        p.goTo(3.3, R.laneZ, 'charge', () => {
+          R.state = 'done'; lane2.material.opacity = 0; G.shake = .6; SFX.boom();
+          p.state = 'dizzy'; p.stun = 2.5;
+          if (!R.hitPlayer) { P.counters++; float('쾅!!', { x: p.x, y: 1.6, z: p.z }, '#fff', 32, 1.4); float('참교육 성공! +300', null, GRADE.red.color, 22, 1.8); }
+          else float('환승 성공~ 🏃💨', { x: p.x, y: 2, z: p.z }, '#ffb3b3', 14);
+          setTimeout(() => { if (people.includes(p)) { p.speed = 2; p.stun = 0; p.goTo(2.6, -7.6, 'leave', () => p.remove()); } }, 2500);
+        });
+      }
+    }
+    if (R.state === 'run') {
+      lane2.material.opacity = .22;
+      for (const q of people) {
+        if (q === p || R.hit.has(q) || q.state === 'leave') continue;
+        if (Math.abs(q.z - R.laneZ) < .5 && Math.abs(q.x - p.x) < .35) {
+          R.hit.add(q);
+          if (q === P) {
+            R.hitPlayer = true; P.stuck = null; P.search = null; P.pushT = 0; P.stun = 1.4;
+            P.z = clamp(P.z + (P.z > 4.8 ? -1 : 1), S1_BOUNDS.z0, S1_BOUNDS.z1);
+            float('으악!!', { x: P.x, y: 1.9, z: P.z }, '#ff5d5d', 22); G.shake = .5; SFX.thud();
+          } else { q.stun = 1.5; q.z += .7; SFX.thud(); }
+        }
+      }
+    }
+  }
+}
+
+function updateStage1(dt) {
+  G.clock += dt;
+  G.shake = Math.max(0, G.shake - dt);
+  if (G.announceT > 0) { G.announceT -= dt; if (G.announceT <= 0) $('announce').style.display = 'none'; }
+  if (G.cutin > 0) { G.cutin -= dt; if (G.cutin <= 0) $('cutin').classList.remove('show'); }
+  if (G.phase === 'gate') {
+    G.t += dt; G.timeLeft -= dt;
+    const sec = Math.max(0, Math.ceil(G.timeLeft));
+    if (sec !== G.boardSec) { G.boardSec = sec; drawBoard(sec); if (sec <= 5 && sec > 0) tone(880, 0, .08, 'square', .03); }
+    if (G.timeLeft <= 15 && !G.warned.train) { G.warned.train = 1; announce('선릉 방면 열차가 곧 들어옵니다. 승강장으로 서두르세요!', 3.5); SFX.chime(); }
+    G.spawnT -= dt;
+    if (G.spawnT <= 0) { G.spawnT = rand(.55, 1.0); if (people.filter(p => p.kind === 'npc').length < 18) spawnFlow(); }
+    // 카드 꺼내기 (앞가방 자동)
+    if (P.search) {
+      P.search.t += dt;
+      if (P.search.auto && P.search.t >= P.search.auto) { P.search = null; P.hasCard = true; }
+      else if (!P.search.auto && P.search.t > 1) {
+        // 뒤에 줄 선 사람들 짜증
+        P.search.t = 0; P.manner -= 1;
+        for (const n of people) if (n.kind === 'npc' && n.state === 'wait' && dist(n, P) < 1.6) n.mood = 1.2;
+        float('(뒤에서 한숨…) 매너 -1', { x: P.x, y: 2.3, z: P.z + .5 }, '#ff9a9a', 11, 1);
+      }
+    }
+    updateGates(dt);
+    updateStage1Villains(dt);
+    updatePlayer(dt);
+    if (P.search && !P.search.auto) { const g = gateAtPlayer(); if (!g) P.search = null; }
+    if (P.z < STAIRS_Z) stage1Done(false);
+    else if (G.timeLeft <= 0) stage1Done(true);
+  }
+  drawFlaps();
+  for (const p of people) if (p !== P) p.update(dt);
+  relaxCrowd(dt);
+  for (const p of people) if (p.kind === 'npc' && p.state === 'wait') pushOutRects(p, NPC_R);
+}
+
+function stage1Done(late) {
+  if (G.phase !== 'gate') return;
+  G.phase = 'boarding';
+  $('warn').classList.remove('show'); $('cutin').classList.remove('show');
+  lane2.material.opacity = 0;
+  const left = Math.max(0, Math.ceil(G.timeLeft));
+  const carry = { manner: P.manner, counters: P.counters, left, late, bag: P.bag, phone: P.phone };
+  SFX.chime();
+  const f = $('fade');
+  f.innerHTML = late ? '<b>열차 진입!</b><span>문 닫히기 직전 겨우 탑승… 🫠</span>' : `<b>탑승!</b><span>열차 도착 ${left}초 전 · ${left >= 15 ? '여유 있게 안쪽까지!' : '무사히 탑승'}</span>`;
+  f.classList.add('show');
+  setTimeout(() => {
+    for (const fl of G.floats) fl.el.remove();
+    newGame(carry); G.started = true;
+    camPos.set(P.x, 9, P.z + 6); camLook.set(P.x, .5, P.z - 1);
+    setTimeout(() => f.classList.remove('show'), 250);
+  }, 1300);
+}
+
+function drawHUD1() {
+  const sec = Math.max(0, Math.ceil(G.timeLeft));
+  $('station').textContent = G.phase === 'gate' ? `🚇 열차 도착까지 ${sec}초` : '승강장으로!';
+  $('station').style.color = sec <= 10 ? '#ff8a8a' : '#fff';
+  $('timebar').style.width = clamp(G.timeLeft / S1_TIME, 0, 1) * 100 + '%';
+  $('timebar').style.background = sec <= 10 ? '#ff5a5a' : '#33d17a';
+  $('remain').textContent = 'STAGE 1 · 신림역 개찰구 → 승강장 계단';
+  drawMap();
+  const pi = $('phoneInfo'), vi = $('vision');
+  if (P.phone && G.phase === 'gate') {
+    pi.innerHTML = `📱 <b>모바일 교통카드 준비됨</b><br>개찰구에서 <b>바로 찍기</b> 가능`;
+    pi.style.display = 'block';
+    const sp = toScreen(P.x, .8, P.z); const R = Math.min(innerWidth, innerHeight) * .26;
+    vi.style.background = `radial-gradient(circle at ${sp.x}px ${sp.y}px, rgba(5,8,15,0) ${R}px, rgba(5,8,15,.9) ${R * 1.9}px)`;
+    vi.style.display = 'block';
+  } else { pi.style.display = 'none'; vi.style.display = 'none'; }
+  let label = '행동<br><small>Space</small>', cls = '';
+  const g = gateAtPlayer();
+  if (G.phase !== 'gate') label = '—';
+  else if (P.stuck) { label = `🎒 빼기!<br><small>${P.stuck.taps}/${P.stuck.need} 연타</small>`; cls = 'mash'; }
+  else if (nearGateVillain()) { label = `헛기침<br><small>${G.gateV.coughs}/3</small>`; cls = 'cough'; }
+  else if (P.search && !P.search.auto) { label = `🎒 카드 찾기<br><small>${P.search.taps}/${P.search.need} 연타</small>`; cls = 'mash'; }
+  else if (g && g.openFor === P) { label = '⬆<br>통과!'; cls = 'ready'; }
+  else if (g && !g.blockedBy && (!g.busy || g.busy === P)) { label = P.phone ? '📱<br>폰 찍기' : '💳<br>카드 찍기'; cls = 'ready'; }
+  setActBtn(label, cls);
 }
 
 // ═════════════════════════ 루프 ═════════════════════════
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
-  if (G && G.started) { update(dt); updateSeatsVisual(); updateCamera(dt); drawHUD(); }
+  if (G && G.started) { if (G.stage === 1) { updateStage1(dt); updateRing(); } else { update(dt); updateSeatsVisual(); } updateCamera(dt); drawHUD(); }
   else if (G) { updateCamera(dt); }
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
@@ -1196,7 +1682,7 @@ function start() {
   audio();
   $('startScreen').classList.remove('show');
   for (const f of (G ? G.floats : [])) f.el.remove();
-  newGame(); G.started = true;
+  newStage1(); G.started = true;
   camPos.set(P.x, 8, P.z + 7);
 }
 $('startBtn').addEventListener('click', start);
@@ -1206,11 +1692,12 @@ if (!('ontouchstart' in window) && matchMedia('(pointer: fine)').matches) $('joy
 addEventListener('touchstart', () => { $('joyBase').style.display = ''; $('keyhint').style.display = 'none'; }, { once: true, passive: true });
 
 resize();
-newGame();
+newStage1();
 $('loading').remove();
 requestAnimationFrame(loop);
 window.__game = { get G() { return G; }, get P() { return P; }, get seats() { return seats; }, get people() { return people; }, start,
-  step(sec) { for (let t = 0; t < sec; t += 1 / 30) { update(1 / 30); updateSeatsVisual(); updateCamera(1 / 30); drawHUD(); } } };
+  get gates() { return gates; },
+  step(sec) { for (let t = 0; t < sec; t += 1 / 30) { if (G.stage === 1) { updateStage1(1 / 30); updateRing(); } else { update(1 / 30); updateSeatsVisual(); } updateCamera(1 / 30); drawHUD(); } } };
 </script>
 </body>
 </html>
