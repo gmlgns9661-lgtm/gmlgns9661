@@ -54,6 +54,9 @@
   .rcard { width: 100%; max-width: 400px; margin: 6px auto; padding: 12px 14px; text-align: left; border-left: 7px solid #7a5cff; border-radius: 12px; background: #232a40; }
   .rform { display: flex; gap: 6px; align-items: center; margin-top: 7px; }
   .rform select { flex: 1; min-width: 0; padding: 8px; border-radius: 8px; border: 1px solid #3a4256; background: #141822; color: #fff; font: inherit; font-size: 14px; }
+  .rform input { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 8px; border: 1px solid #3a4256; background: #141822; color: #fff; font: inherit; font-size: 15px; }
+  .rlegs { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+  .leg { font-size: 12.5px; padding: 4px 8px; border-radius: 8px; background: #141822; border-left: 5px solid var(--lc); color: #e8ecff; }
   .rswap { border: 0; border-radius: 8px; background: #3a4256; color: #fff; font-size: 16px; padding: 6px 10px; cursor: pointer; }
   .rcard .rbtn { margin-top: 8px; width: 100%; padding: 10px; font-size: 15px; }
   .rcard .rbtn:disabled { opacity: .45; cursor: not-allowed; }
@@ -250,16 +253,15 @@
     <p class="sub" id="rankNote"></p>
   </div>
   <div class="rcard" id="routeCard">
-    <div class="lhead"><span class="lbadge" style="background:#7a5cff">🗺️</span><b>내 출근길 만들기</b><span class="lstars">NEW</span></div>
-    <p class="ldesc">매일 타는 실제 구간을 골라 그대로 플레이. 같은 구간 출근자끼리 따로 랭킹!</p>
+    <div class="lhead"><span class="lbadge" style="background:#7a5cff">🗺️</span><b>내 출근길</b><span class="lstars">환승 자동</span></div>
+    <p class="ldesc">출발역·도착역만 입력하면 수도권 전 노선에서 실제 경로(환승 포함)를 찾아 그대로 플레이!</p>
     <div class="rform">
-      <label for="rLine" class="sr">노선</label><select id="rLine"></select>
-    </div>
-    <div class="rform">
-      <label for="rFrom" class="sr">출발역</label><select id="rFrom"></select>
+      <label for="rFrom" class="sr">출발역</label><input id="rFrom" list="stationList" placeholder="출발역 (예: 신도림)" autocomplete="off">
       <button class="rswap" id="rSwap" aria-label="출발역과 도착역 바꾸기">⇄</button>
-      <label for="rTo" class="sr">도착역</label><select id="rTo"></select>
+      <label for="rTo" class="sr">도착역</label><input id="rTo" list="stationList" placeholder="도착역 (예: 강남)" autocomplete="off">
     </div>
+    <datalist id="stationList"></datalist>
+    <div class="rlegs" id="rLegs"></div>
     <p class="ldesc" id="rInfo"></p>
     <button class="rbtn" id="rGo">이 구간으로 출근 ▶</button>
   </div>
@@ -992,7 +994,7 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   if (!keys.has(k)) {
-    if ($('lineScreen').classList.contains('show') && /^[1-4]$/.test(k)) { startLine(LINES[+k - 1]); keys.add(k); return; }
+    if ($('lineScreen').classList.contains('show') && /^[1-4]$/.test(k)) { JOURNEY = null; startLine(LINES[+k - 1]); keys.add(k); return; }
     if (k === ' ' || k === 'e' || k === 'enter') {
       if ($('startScreen').classList.contains('show') && k !== 'e') { showLineScreen(); keys.add(k); return; }
       if ($('endScreen').classList.contains('show') && k !== 'e') { start(); keys.add(k); return; }
@@ -1226,6 +1228,7 @@ function playerSit(s) {
   $('big').textContent = '착석!'; $('big').classList.add('show');
   SFX.sit();
   const remain = LAST - G.endStop;
+  if (JOURNEY) { setTimeout(() => legDone(true, remain), 1800); return; }
   setTimeout(() => showEnd(true, [
     ...stage1Rows(),
     ['🚉', `남은 ${remain}개 역 편하게 감`, remain * 150],
@@ -1239,6 +1242,15 @@ function stage1Rows() {
   return [['🚪', `승강장 줄: ${c.idx + 1}번째로 탑승 (문당 ${c.cap}명)`, (c.cap - c.idx) * 30 - (c.late ? 60 : 0)]];
 }
 function failGame() {
+  if (JOURNEY) {
+    G.endStop = LAST; G.phase = 'end';
+    const last = JOURNEY.idx === JOURNEY.legs.length - 1;
+    $('cutin').classList.remove('show'); $('warn').classList.remove('show'); laneMesh.material.opacity = 0;
+    announce(last ? `${STATIONS[LAST]} 도착. 서서 왔다…` : `${STATIONS[LAST]} 도착 · 환승하러 갑니다`, 3);
+    $('big').textContent = last ? '도착…' : '🔁 환승!'; $('big').classList.add('show');
+    setTimeout(() => legDone(false, 0), 1400);
+    return;
+  }
   G.endStop = LAST; G.phase = 'end';
   SFX.fail(); announce(`${STATIONS[LAST]} 도착. 오늘도 서서 출근...`, 5);
   $('big').textContent = '회사 도착…'; $('big').classList.add('show');
@@ -1249,11 +1261,13 @@ function failGame() {
   ]), 1600);
 }
 function showEnd(win, parts, opt = {}) {
+  if (JOURNEY && !opt.kind) parts = [...JOURNEY.rows, ...parts];
   const total = Math.max(0, parts.reduce((a, p) => a + p[2], 0));
   $('big').classList.remove('show');
   $('endEmoji').textContent = opt.emoji || (win ? '🪑✨' : '🧍😩');
   $('endTitle').textContent = opt.title || (win ? '착석!' : `${STATIONS[LAST]} 도착…`);
-  $('endDesc').textContent = `[${LINE.name}${LINE.custom ? ' ' + LINE.routeLabel : ''} ${LINE.stars}] ` + (opt.desc || (win ? `${STATIONS[G.endStop]} 근처에서 자리를 쟁취했다!` : '오늘도 서서 출근했다. 내일은 꼭 앉자.'));
+  const RL = rankLine();
+  $('endDesc').textContent = `[${RL.name}${RL.custom ? ' ' + RL.routeLabel : ''} ${RL.stars || ''}] ` + (opt.desc || (win ? `${STATIONS[G.endStop]} 근처에서 자리를 쟁취했다!` : '오늘도 서서 출근했다. 내일은 꼭 앉자.'));
   $('endScore').textContent = total.toLocaleString() + '점';
   let rank = '평범한 직장인';
   if (!win) rank = '만원 지하철의 생존자';
@@ -1262,6 +1276,8 @@ function showEnd(win, parts, opt = {}) {
   else if (total >= 600) rank = '🥈 출근 고수';
   $('endRank').textContent = opt.rank || rank;
   $('endTable').innerHTML = parts.map(p => `<tr><td>${p[0]}</td><td>${p[1]}</td><td style="text-align:right">${p[2] >= 0 ? '+' : ''}${p[2]}</td></tr>`).join('');
+  $('againBtn').textContent = JOURNEY ? '같은 경로 다시 ↻' : '같은 노선 다시 ↻';
+  $('lineBtn').textContent = JOURNEY ? '경로 바꾸기' : '노선 바꾸기';
   $('endScreen').classList.add('show');
   $('endBoard').innerHTML = '';
   submitRun(total, inferKind(win, opt));
@@ -1356,7 +1372,7 @@ function drawHUD2() {
   $('station').style.color = G.phase === 'arrive' ? '#ffe9a8' : '#fff';
   $('timebar').style.width = (G.phase === 'run' ? clamp(1 - G.t / G.runDur, 0, 1) * 100 : 0) + '%';
   $('timebar').style.background = '#33d17a';
-  $('remain').textContent = `목적지 ${STATIONS[LAST]}까지 ${Math.max(0, LAST - cur)}역`;
+  $('remain').textContent = `목적지 ${STATIONS[LAST]}까지 ${Math.max(0, LAST - cur)}역` + legLabel();
   drawMap();
   // 경보 깜빡임
   const w = $('warn');
@@ -1879,7 +1895,7 @@ function drawHUD1() {
   $('station').style.color = sec <= 10 ? '#ff8a8a' : '#fff';
   $('timebar').style.width = clamp(G.timeLeft / LINE.s1Time, 0, 1) * 100 + '%';
   $('timebar').style.background = sec <= 10 ? '#ff5a5a' : '#33d17a';
-  $('remain').textContent = `STAGE 1 · ${STATIONS[0]}역 개찰구 → 승강장 계단`;
+  $('remain').textContent = `STAGE 1 · ${STATIONS[0]}역 개찰구 → 승강장 계단` + legLabel();
   drawMap();
   const pi = $('phoneInfo'), vi = $('vision');
   if (P.phone && G.phase === 'gate') {
@@ -1934,7 +1950,7 @@ function buildLineCards() {
       <div class="ltop" data-line="${L.id}"></div>
       <div class="ltags"><span>${L.label}</span><span>승객 ${L.crowd}명+</span><span>개찰구 ${L.s1Time}초</span><span>빌런 ${L.villains}+</span></div>
     </button>`).join('');
-  for (const b of document.querySelectorAll('.lcard')) b.addEventListener('click', () => startLine(LINES[+b.dataset.i]));
+  for (const b of document.querySelectorAll('.lcard')) b.addEventListener('click', () => { JOURNEY = null; startLine(LINES[+b.dataset.i]); });
 }
 function startLine(L) {
   setLine(L);
@@ -2203,7 +2219,7 @@ function sayNext(st) {
 function sayThis(st) {
   const side = doorSideOf(st) ? '오른쪽' : '왼쪽';
   const x = transferText(st);
-  const end = st === STATIONS[LAST] ? ' 이 역은 이 열차의 종착역입니다.' : '';
+  const end = !LINE.custom && st === STATIONS[LAST] ? ' 이 역은 이 열차의 종착역입니다.' : '';
   const txt = `이번 역은 ${st}, ${st}역입니다. 내리실 문은 ${side}입니다.` + (x ? ` ${x} 이번 역에서 내리시기 바랍니다.` : '') + end;
   speak(txt); return txt;
 }
@@ -2309,8 +2325,9 @@ function enterPlatform() {
     }
     G.phase = 'platform'; G.plT = 0; G.plSpawnT = 1.5; G.cutter = null;
     G.cap = DOOR_CAP[LINE.diff];
-    announce(`이번 열차는 ${STATIONS[LAST]}행 열차입니다. 노란 발자국 끝에 줄을 서세요!`, 3.5);
-    speak(`이번 열차는 ${STATIONS[LAST]}행 열차입니다.`, { interrupt: true });
+    const dir = LINE.custom ? `${STATIONS[LAST]} 방면` : `${STATIONS[LAST]}행`;
+    announce(`이번 열차는 ${dir} 열차입니다. 노란 발자국 끝에 줄을 서세요!`, 3.5);
+    speak(`이번 열차는 ${dir} 열차입니다.`, { interrupt: true });
     setTimeout(() => f.classList.remove('show'), 200);
   }, 700);
 }
@@ -2473,7 +2490,7 @@ function drawHUDPlatform() {
   $('timebar').style.width = clamp(G.timeLeft / LINE.s1Time, 0, 1) * 100 + '%';
   $('timebar').style.background = sec <= 10 ? '#ff5a5a' : LINE.color;
   const qtxt = P.boardedTrain ? '탑승 완료!' : idx >= 0 ? `내 줄 순서 ${idx + 1}번째 · 문당 약 ${P.phone ? G.cap + '명 탑승 가능 📱' : '?명 탑승 (📱폰으로 확인)'}` : '노란 발자국 줄 끝에 서세요';
-  $('remain').textContent = `STAGE 1 · 승강장 · ${qtxt}`;
+  $('remain').textContent = `STAGE 1 · 승강장 · ${qtxt}` + legLabel();
   drawMap();
   const pi = $('phoneInfo'), vi = $('vision');
   if (P.phone && G.phase !== 'end') {
@@ -2642,7 +2659,7 @@ function myNick() { return cleanNick($('nickInput').value) || cleanNick(RK.mine 
 const boardKey = (L, day = kstDay()) => `${day}_${L.id}`;
 
 function seedRun() {
-  rnd = RK.daily ? mulberry32(hashStr(boardKey(LINE || LINES[1]))) : (() => Math.random());
+  rnd = RK.daily ? mulberry32(hashStr(boardKey(rankLine() || LINES[1]))) : (() => Math.random());
 }
 function boardFor(L, day = kstDay()) {
   const key = boardKey(L, day), out = [];
@@ -2669,7 +2686,7 @@ async function initRanking() {
       RK.runs.clear();
       for (const d of snap.docs) if (d.exists) RK.runs.set(d.id, d.data());
       RK.mine = RK.uid ? RK.runs.get(RK.uid) || null : null;
-      if (typeof updateRouteInfo === 'function' && $('rLine').options.length) updateRouteInfo();
+      if ($('rFrom') && $('stationList').options.length) updateRouteInfo();
       if (RK.mine && !$('nickInput').value) $('nickInput').value = cleanNick(RK.mine.nick);
       if (!snap.metadata.fromCache) { RK.ready = true; RK.state = 'live'; clearTimeout(timer); }
       renderLineTops(); if ($('rankScreen').classList.contains('show')) renderRankScreen();
@@ -2691,7 +2708,7 @@ function renderLineTops() {
 
 async function submitRun(total, kind) {
   const out = $('endBoard');
-  const key = boardKey(LINE);
+  const key = boardKey(rankLine());
   // 누적 기록
   const st = { ...myStats() };
   const today = kstDay(), yday = kstDay(-1);
@@ -2712,7 +2729,7 @@ async function submitRun(total, kind) {
 }
 async function writeRun(nick, total, kind, st) {
   const out = $('endBoard');
-  const key = boardKey(LINE);
+  const key = boardKey(rankLine());
   const cur = RK.mine || {};
   const best = { ...(cur.best || {}) };
   const prev = best[key];
@@ -2754,20 +2771,21 @@ function boardList(L, limit, mark) {
 }
 function renderEndBoard(head) {
   const out = $('endBoard'); out.innerHTML = '';
-  const { el, all } = boardList(LINE, 5, RK.uid);
+  const { el, all } = boardList(rankLine(), 5, RK.uid);
   const myIdx = all.findIndex(r => r.id === RK.uid);
-  const h = document.createElement('h2'); h.textContent = `📅 오늘의 출근길 · ${LINE.name}${LINE.custom ? ' ' + LINE.routeLabel : ''}`; out.append(h);
+  const RL = rankLine();
+  const h = document.createElement('h2'); h.textContent = `📅 오늘의 출근길 · ${RL.name}${RL.custom ? ' ' + RL.routeLabel : ''}`; out.append(h);
   if (head) out.append(line(head));
   if (myIdx >= 0) out.append(line(`내 순위 ${myIdx + 1}위 / ${all.length}명`));
   out.append(el);
-  const more = document.createElement('button'); more.className = 'go go2'; more.textContent = '🏆 전체 랭킹'; more.onclick = () => openRank(LINE.id);
+  const more = document.createElement('button'); more.className = 'go go2'; more.textContent = '🏆 전체 랭킹'; more.onclick = () => openRank(rankLine().id);
   out.append(more);
 }
 let rankTab = '2';
 function openRank(id) { rankTab = id || rankTab; $('rankScreen').classList.add('show'); renderRankScreen(); }
 function renderRankScreen() {
   const tabs = $('rankTabs'); tabs.innerHTML = '';
-  const cust = (LINE && LINE.custom) ? LINE : CUSTOM;
+  const cust = JOURNEY ? JOURNEY.rank : (LINE && LINE.custom) ? LINE : null;
   const tabList = cust ? [...LINES, cust] : LINES;
   for (const L of tabList) {
     const b = document.createElement('button'); b.className = 'rtab' + (L.id === rankTab ? ' on' : ''); b.style.setProperty('--lc', L.custom ? '#7a5cff' : L.color);
@@ -2784,6 +2802,7 @@ function renderRankScreen() {
   body.append(line(`내 기록 · 🔥 연속 ${st.streak || 0}일 · 🪑 착석 ${st.wins || 0} · ⏰ 지각 ${st.lates || 0} · 💥 싸움 ${st.fights || 0} · 총 ${st.plays || 0}판`));
 }
 function inferKind(win, opt) {
+  if (opt.kind) return opt.kind;
   if (win) return 'seat';
   if (opt.emoji === '⏰😱') return 'late';
   if (opt.emoji === '💥😡') return 'fight';
@@ -2795,9 +2814,10 @@ $('dailyToggle').addEventListener('change', () => { RK.daily = $('dailyToggle').
 $('rankBtn').addEventListener('click', () => openRank());
 $('rankClose').addEventListener('click', () => $('rankScreen').classList.remove('show'));
 
-const METRO = [{"k":"1호선","name":"1호선","badge":"①","color":"#0052A4","tier":3,"loop":false,"arms":[["소요산","동두천","보산","동두천중앙","지행","덕정","덕계","양주","녹양","가능","의정부","회룡","망월사","도봉산","도봉","방학","창동","녹천","월계","광운대","석계","신이문","외대앞","회기","청량리","제기동","신설동","동묘앞","동대문","종로5가","종로3가","종각","시청","서울역","남영","용산","노량진","대방","신길","영등포","신도림","구로","구일","개봉","오류동","온수","역곡","소사","부천","중동","송내","부개","부평","백운","동암","간석","주안","도화","제물포","도원","동인천","인천"],["구로","가산디지털단지","독산","금천구청","석수","관악","안양","명학","금정","군포","당정","의왕","성균관대","화서","수원","세류","병점","세마","오산대","오산","진위","송탄","서정리","평택지제","평택","성환","직산","두정","천안","봉명","쌍용","아산","탕정","배방","온양온천","신창"],["소요산","청산","전곡","연천"],["병점","서동탄"],["금천구청","광명"]]},{"k":"2호선","name":"2호선","badge":"②","color":"#00A84D","tier":3,"loop":true,"arms":[["시청","을지로입구","을지로3가","을지로4가","동대문역사문화공원","신당","상왕십리","왕십리","한양대","뚝섬","성수","건대입구","구의","강변","잠실나루","잠실","잠실새내","종합운동장","삼성","선릉","역삼","강남","교대","서초","방배","사당","낙성대","서울대입구","봉천","신림","신대방","구로디지털단지","대림","신도림","문래","영등포구청","당산","합정","홍대입구","신촌","이대","아현","충정로"],["성수","용답","신답","용두","신설동"],["신도림","도림천","양천구청","신정네거리","까치산"]]},{"k":"3호선","name":"3호선","badge":"③","color":"#EF7C1C","tier":2,"loop":false,"arms":[["대화","주엽","정발산","마두","백석","대곡","화정","원당","원흥","삼송","지축","구파발","연신내","불광","녹번","홍제","무악재","독립문","경복궁","안국","종로3가","을지로3가","충무로","동대입구","약수","금호","옥수","압구정","신사","잠원","고속터미널","교대","남부터미널","양재","매봉","도곡","대치","학여울","대청","일원","수서","가락시장","경찰병원","오금"]]},{"k":"4호선","name":"4호선","badge":"④","color":"#00A5DE","tier":2,"loop":false,"arms":[["진접","오남","별내별가람","불암산","상계","노원","창동","쌍문","수유","미아","미아사거리","길음","성신여대입구","한성대입구","혜화","동대문","동대문역사문화공원","충무로","명동","회현","서울역","숙대입구","삼각지","신용산","이촌","동작","총신대입구","사당","남태령","선바위","경마공원","대공원","과천","정부과천청사","인덕원","평촌","범계","금정","산본","수리산","대야미","반월","상록수","한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도"]]},{"k":"5호선","name":"5호선","badge":"⑤","color":"#996CAC","tier":2,"loop":false,"arms":[["방화","개화산","김포공항","송정","마곡","발산","우장산","화곡","까치산","신정","목동","오목교","양평","영등포구청","영등포시장","신길","여의도","여의나루","마포","공덕","애오개","충정로","서대문","광화문","종로3가","을지로4가","동대문역사문화공원","청구","신금호","행당","왕십리","마장","답십리","장한평","군자","아차산","광나루","천호","강동","길동","굽은다리","명일","고덕","상일동","강일","미사","하남풍산","하남시청","하남검단산"],["강동","둔촌동","올림픽공원","방이","오금","개롱","거여","마천"]]},{"k":"6호선","name":"6호선","badge":"⑥","color":"#CD7C2F","tier":1,"loop":false,"arms":[["응암","역촌","불광","독바위","연신내","구산","새절","증산","디지털미디어시티","월드컵경기장","마포구청","망원","합정","상수","광흥창","대흥","공덕","효창공원앞","삼각지","녹사평","이태원","한강진","버티고개","약수","청구","신당","동묘앞","창신","보문","안암","고려대","월곡","상월곡","돌곶이","석계","태릉입구","화랑대","봉화산","신내"]]},{"k":"7호선","name":"7호선","badge":"⑦","color":"#747F00","tier":3,"loop":false,"arms":[["장암","도봉산","수락산","마들","노원","중계","하계","공릉","태릉입구","먹골","중화","상봉","면목","사가정","용마산","중곡","군자","어린이대공원","건대입구","자양","청담","강남구청","학동","논현","반포","고속터미널","내방","총신대입구","남성","숭실대입구","상도","장승배기","신대방삼거리","보라매","신풍","대림","남구로","가산디지털단지","철산","광명사거리","천왕","온수","까치울","부천종합운동장","춘의","신중동","부천시청","상동","삼산체육관","굴포천","부평구청","산곡","석남"]]},{"k":"8호선","name":"8호선","badge":"⑧","color":"#E6186C","tier":1,"loop":false,"arms":[["별내","다산","동구릉","구리","장자호수공원","암사역사공원","암사","천호","강동구청","몽촌토성","잠실","석촌","송파","가락시장","문정","장지","복정","남위례","산성","남한산성입구","단대오거리","신흥","수진","모란"]]},{"k":"9호선","name":"9호선","badge":"⑨","color":"#BDB092","tier":4,"loop":false,"arms":[["개화","김포공항","공항시장","신방화","마곡나루","양천향교","가양","증미","등촌","염창","신목동","선유도","당산","국회의사당","여의도","샛강","노량진","노들","흑석","동작","구반포","신반포","고속터미널","사평","신논현","언주","선정릉","삼성중앙","봉은사","종합운동장","삼전","석촌고분","석촌","송파나루","한성백제","올림픽공원","둔촌오륜","중앙보훈병원"]]},{"k":"경춘","name":"경춘선","badge":"경춘","color":"#0C8E72","tier":1,"loop":false,"arms":[["광운대","상봉","망우","신내","갈매","별내","퇴계원","사릉","금곡","평내호평","천마산","마석","대성리","청평","상천","가평","굴봉산","백양리","강촌","김유정","남춘천","춘천"],["청량리","회기","중랑","상봉"]]},{"k":"경의중앙","name":"경의중앙선","badge":"경의","color":"#77C4A3","tier":2,"loop":false,"arms":[["문산","파주","월롱","금촌","금릉","운정","야당","탄현","일산","풍산","백마","곡산","대곡","능곡","행신","강매","한국항공대","수색","디지털미디어시티","가좌","홍대입구","서강대","공덕","효창공원앞","용산","이촌","서빙고","한남","옥수","응봉","왕십리","청량리","회기","중랑","상봉","망우","양원","구리","도농","양정","덕소","도심","팔당","운길산","양수","신원","국수","아신","오빈","양평","원덕","용문","지평"],["문산","운천","임진강"],["홍대입구","신촌","서울역"]]},{"k":"수인분당","name":"수인분당선","badge":"수인","color":"#F5A200","tier":2,"loop":false,"arms":[["청량리","왕십리","서울숲","압구정로데오","강남구청","선정릉","선릉","한티","도곡","구룡","개포동","대모산입구","수서","복정","가천대","태평","모란","야탑","이매","서현","수내","정자","미금","오리","죽전","보정","구성","신갈","기흥","상갈","청명","영통","망포","매탄권선","수원시청","매교","수원","고색","오목천","어천","야목","사리","한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도","달월","월곶","소래포구","인천논현","호구포","남동인더스파크","원인재","연수","송도","인하대","숭의","신포","인천"]]},{"k":"신분당선","name":"신분당선","badge":"신분","color":"#D4003B","tier":3,"loop":false,"arms":[["청계산입구","판교","정자","미금","동천","수지구청","성복","상현","광교중앙","광교","신사","논현","신논현","강남","양재","양재시민의숲"]]},{"k":"서해","name":"서해선","badge":"서해","color":"#8FC31F","tier":2,"loop":false,"arms":[["일산","풍산","백마","곡산","대곡","능곡","김포공항역","원종","부천종합운동장역","소사","소새울","시흥대야","신천","신현","시흥시청","시흥능곡","달미","선부","초지","시우","원시"]]},{"k":"경강","name":"경강선","badge":"경강","color":"#003DA5","tier":1,"loop":false,"arms":[["판교","성남","이매","삼동","경기광주","초월","곤지암","신둔도예촌","이천","부발","세종대왕릉","여주"]]},{"k":"인천1호선","name":"인천1호선","badge":"인1","color":"#7CA8D5","tier":1,"loop":false,"arms":[["검단호수공원","신검단중앙","아라","계양","귤현","박촌","임학","계산","경인교대입구","작전","갈산","부평구청","부평시장","부평","동수","부평삼거리","간석오거리","인천시청","예술회관","인천터미널","문학경기장","선학","신연수","원인재","동춘","동막","캠퍼스타운","테크노파크","지식정보단지","인천대입구","센트럴파크","국제업무지구","송도달빛축제공원"]]},{"k":"인천2호선","name":"인천2호선","badge":"인2","color":"#ED8B00","tier":1,"loop":false,"arms":[["검단오류","왕길","검단사거리","마전","완정","독정","검암","검바위","아시아드경기장","서구청","가정","가정중앙시장","석남","서부여성회관","인천가좌","가재울","주안국가산단","주안","시민공원","석바위시장","인천시청","석천사거리","모래내시장","만수","남동구청","인천대공원","운연"]]},{"k":"김포골드라인","name":"김포골드라인","badge":"G","color":"#A17E46","tier":4,"loop":false,"arms":[["양촌","구래","마산","장기","운양","걸포북변","사우","풍무","고촌","김포공항"]]},{"k":"우이신설","name":"우이신설선","badge":"우이","color":"#B0CE18","tier":1,"loop":false,"arms":[["북한산우이","솔밭공원","4.19민주묘지","가오리","화계","삼양","삼양사거리","솔샘","북한산보국문","정릉","성신여대입구","보문","신설동"]]},{"k":"신림선","name":"신림선","badge":"신림","color":"#6789CA","tier":2,"loop":false,"arms":[["샛강","대방","서울지방병무청","보라매","보라매공원","보라매병원","당곡","신림","서원","서울대벤처타운","관악산"]]},{"k":"의정부경전철","name":"의정부경전철","badge":"의정","color":"#FDA600","tier":1,"loop":false,"arms":[["발곡","회룡","범골","경전철의정부","의정부시청","흥선","의정부중앙","동오","새말","경기도청북부청사","효자","곤제","어룡","송산","탑석"]]},{"k":"용인경전철","name":"용인에버라인","badge":"에버","color":"#509F22","tier":1,"loop":false,"arms":[["기흥","강남대","지석","어정","동백","초당","삼가","시청.용인대","명지대","김량장","용인중앙시장","고진","보평","둔전","전대.에버랜드"]]},{"k":"공항철도","name":"공항철도","badge":"공항","color":"#0090D2","tier":2,"loop":false,"arms":[["서울역","공덕","홍대입구","디지털미디어시티","마곡나루","김포공항","계양","검암","청라국제도시","영종","운서","공항화물청사","인천공항1터미널","인천공항2터미널"]]},{"k":"GTX-A","name":"GTX-A","badge":"A","color":"#9A6292","tier":1,"loop":false,"arms":[["운정중앙","킨텍스","대곡","연신내","서울역","수서","성남","구성","동탄"]]}];
+const METRO = [{"k":"1호선","name":"1호선","badge":"①","color":"#0052A4","tier":3,"loop":false,"arms":[["소요산","동두천","보산","동두천중앙","지행","덕정","덕계","양주","녹양","가능","의정부","회룡","망월사","도봉산","도봉","방학","창동","녹천","월계","광운대","석계","신이문","외대앞","회기","청량리","제기동","신설동","동묘앞","동대문","종로5가","종로3가","종각","시청","서울역","남영","용산","노량진","대방","신길","영등포","신도림","구로","구일","개봉","오류동","온수","역곡","소사","부천","중동","송내","부개","부평","백운","동암","간석","주안","도화","제물포","도원","동인천","인천"],["구로","가산디지털단지","독산","금천구청","석수","관악","안양","명학","금정","군포","당정","의왕","성균관대","화서","수원","세류","병점","세마","오산대","오산","진위","송탄","서정리","평택지제","평택","성환","직산","두정","천안","봉명","쌍용","아산","탕정","배방","온양온천","신창"],["소요산","청산","전곡","연천"],["병점","서동탄"],["금천구청","광명"]]},{"k":"2호선","name":"2호선","badge":"②","color":"#00A84D","tier":3,"loop":true,"arms":[["시청","을지로입구","을지로3가","을지로4가","동대문역사문화공원","신당","상왕십리","왕십리","한양대","뚝섬","성수","건대입구","구의","강변","잠실나루","잠실","잠실새내","종합운동장","삼성","선릉","역삼","강남","교대","서초","방배","사당","낙성대","서울대입구","봉천","신림","신대방","구로디지털단지","대림","신도림","문래","영등포구청","당산","합정","홍대입구","신촌","이대","아현","충정로"],["성수","용답","신답","용두","신설동"],["신도림","도림천","양천구청","신정네거리","까치산"]]},{"k":"3호선","name":"3호선","badge":"③","color":"#EF7C1C","tier":2,"loop":false,"arms":[["대화","주엽","정발산","마두","백석","대곡","화정","원당","원흥","삼송","지축","구파발","연신내","불광","녹번","홍제","무악재","독립문","경복궁","안국","종로3가","을지로3가","충무로","동대입구","약수","금호","옥수","압구정","신사","잠원","고속터미널","교대","남부터미널","양재","매봉","도곡","대치","학여울","대청","일원","수서","가락시장","경찰병원","오금"]]},{"k":"4호선","name":"4호선","badge":"④","color":"#00A5DE","tier":2,"loop":false,"arms":[["진접","오남","별내별가람","불암산","상계","노원","창동","쌍문","수유","미아","미아사거리","길음","성신여대입구","한성대입구","혜화","동대문","동대문역사문화공원","충무로","명동","회현","서울역","숙대입구","삼각지","신용산","이촌","동작","총신대입구","사당","남태령","선바위","경마공원","대공원","과천","정부과천청사","인덕원","평촌","범계","금정","산본","수리산","대야미","반월","상록수","한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도"]]},{"k":"5호선","name":"5호선","badge":"⑤","color":"#996CAC","tier":2,"loop":false,"arms":[["방화","개화산","김포공항","송정","마곡","발산","우장산","화곡","까치산","신정","목동","오목교","양평(5호선)","영등포구청","영등포시장","신길","여의도","여의나루","마포","공덕","애오개","충정로","서대문","광화문","종로3가","을지로4가","동대문역사문화공원","청구","신금호","행당","왕십리","마장","답십리","장한평","군자","아차산","광나루","천호","강동","길동","굽은다리","명일","고덕","상일동","강일","미사","하남풍산","하남시청","하남검단산"],["강동","둔촌동","올림픽공원","방이","오금","개롱","거여","마천"]]},{"k":"6호선","name":"6호선","badge":"⑥","color":"#CD7C2F","tier":1,"loop":false,"arms":[["응암","역촌","불광","독바위","연신내","구산","새절","증산","디지털미디어시티","월드컵경기장","마포구청","망원","합정","상수","광흥창","대흥","공덕","효창공원앞","삼각지","녹사평","이태원","한강진","버티고개","약수","청구","신당","동묘앞","창신","보문","안암","고려대","월곡","상월곡","돌곶이","석계","태릉입구","화랑대","봉화산","신내"]]},{"k":"7호선","name":"7호선","badge":"⑦","color":"#747F00","tier":3,"loop":false,"arms":[["장암","도봉산","수락산","마들","노원","중계","하계","공릉","태릉입구","먹골","중화","상봉","면목","사가정","용마산","중곡","군자","어린이대공원","건대입구","자양","청담","강남구청","학동","논현","반포","고속터미널","내방","총신대입구","남성","숭실대입구","상도","장승배기","신대방삼거리","보라매","신풍","대림","남구로","가산디지털단지","철산","광명사거리","천왕","온수","까치울","부천종합운동장","춘의","신중동","부천시청","상동","삼산체육관","굴포천","부평구청","산곡","석남"]]},{"k":"8호선","name":"8호선","badge":"⑧","color":"#E6186C","tier":1,"loop":false,"arms":[["별내","다산","동구릉","구리","장자호수공원","암사역사공원","암사","천호","강동구청","몽촌토성","잠실","석촌","송파","가락시장","문정","장지","복정","남위례","산성","남한산성입구","단대오거리","신흥","수진","모란"]]},{"k":"9호선","name":"9호선","badge":"⑨","color":"#BDB092","tier":4,"loop":false,"arms":[["개화","김포공항","공항시장","신방화","마곡나루","양천향교","가양","증미","등촌","염창","신목동","선유도","당산","국회의사당","여의도","샛강","노량진","노들","흑석","동작","구반포","신반포","고속터미널","사평","신논현","언주","선정릉","삼성중앙","봉은사","종합운동장","삼전","석촌고분","석촌","송파나루","한성백제","올림픽공원","둔촌오륜","중앙보훈병원"]]},{"k":"경춘","name":"경춘선","badge":"경춘","color":"#0C8E72","tier":1,"loop":false,"arms":[["광운대","상봉","망우","신내","갈매","별내","퇴계원","사릉","금곡","평내호평","천마산","마석","대성리","청평","상천","가평","굴봉산","백양리","강촌","김유정","남춘천","춘천"],["청량리","회기","중랑","상봉"]]},{"k":"경의중앙","name":"경의중앙선","badge":"경의","color":"#77C4A3","tier":2,"loop":false,"arms":[["문산","파주","월롱","금촌","금릉","운정","야당","탄현","일산","풍산","백마","곡산","대곡","능곡","행신","강매","한국항공대","수색","디지털미디어시티","가좌","홍대입구","서강대","공덕","효창공원앞","용산","이촌","서빙고","한남","옥수","응봉","왕십리","청량리","회기","중랑","상봉","망우","양원","구리","도농","양정","덕소","도심","팔당","운길산","양수","신원","국수","아신","오빈","양평","원덕","용문","지평"],["문산","운천","임진강"],["홍대입구","신촌(경의중앙)","서울역"]]},{"k":"수인분당","name":"수인분당선","badge":"수인","color":"#F5A200","tier":2,"loop":false,"arms":[["청량리","왕십리","서울숲","압구정로데오","강남구청","선정릉","선릉","한티","도곡","구룡","개포동","대모산입구","수서","복정","가천대","태평","모란","야탑","이매","서현","수내","정자","미금","오리","죽전","보정","구성","신갈","기흥","상갈","청명","영통","망포","매탄권선","수원시청","매교","수원","고색","오목천","어천","야목","사리","한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도","달월","월곶","소래포구","인천논현","호구포","남동인더스파크","원인재","연수","송도","인하대","숭의","신포","인천"]]},{"k":"신분당선","name":"신분당선","badge":"신분","color":"#D4003B","tier":3,"loop":false,"arms":[["신사","논현","신논현","강남","양재","양재시민의숲","청계산입구","판교","정자","미금","동천","수지구청","성복","상현","광교중앙","광교"]]},{"k":"서해","name":"서해선","badge":"서해","color":"#8FC31F","tier":2,"loop":false,"arms":[["일산","풍산","백마","곡산","대곡","능곡","김포공항","원종","부천종합운동장","소사","소새울","시흥대야","신천","신현","시흥시청","시흥능곡","달미","선부","초지","시우","원시"]]},{"k":"경강","name":"경강선","badge":"경강","color":"#003DA5","tier":1,"loop":false,"arms":[["판교","성남","이매","삼동","경기광주","초월","곤지암","신둔도예촌","이천","부발","세종대왕릉","여주"]]},{"k":"인천1호선","name":"인천1호선","badge":"인1","color":"#7CA8D5","tier":1,"loop":false,"arms":[["검단호수공원","신검단중앙","아라","계양","귤현","박촌","임학","계산","경인교대입구","작전","갈산","부평구청","부평시장","부평","동수","부평삼거리","간석오거리","인천시청","예술회관","인천터미널","문학경기장","선학","신연수","원인재","동춘","동막","캠퍼스타운","테크노파크","지식정보단지","인천대입구","센트럴파크","국제업무지구","송도달빛축제공원"]]},{"k":"인천2호선","name":"인천2호선","badge":"인2","color":"#ED8B00","tier":1,"loop":false,"arms":[["검단오류","왕길","검단사거리","마전","완정","독정","검암","검바위","아시아드경기장","서구청","가정","가정중앙시장","석남","서부여성회관","인천가좌","가재울","주안국가산단","주안","시민공원","석바위시장","인천시청","석천사거리","모래내시장","만수","남동구청","인천대공원","운연"]]},{"k":"김포골드라인","name":"김포골드라인","badge":"G","color":"#A17E46","tier":4,"loop":false,"arms":[["양촌","구래","마산","장기","운양","걸포북변","사우","풍무","고촌","김포공항"]]},{"k":"우이신설","name":"우이신설선","badge":"우이","color":"#B0CE18","tier":1,"loop":false,"arms":[["북한산우이","솔밭공원","4.19민주묘지","가오리","화계","삼양","삼양사거리","솔샘","북한산보국문","정릉","성신여대입구","보문","신설동"]]},{"k":"신림선","name":"신림선","badge":"신림","color":"#6789CA","tier":2,"loop":false,"arms":[["샛강","대방","서울지방병무청","보라매","보라매공원","보라매병원","당곡","신림","서원","서울대벤처타운","관악산"]]},{"k":"의정부경전철","name":"의정부경전철","badge":"의정","color":"#FDA600","tier":1,"loop":false,"arms":[["발곡","회룡","범골","경전철의정부","의정부시청","흥선","의정부중앙","동오","새말","경기도청북부청사","효자","곤제","어룡","송산","탑석"]]},{"k":"용인경전철","name":"용인에버라인","badge":"에버","color":"#509F22","tier":1,"loop":false,"arms":[["기흥","강남대","지석","어정","동백","초당","삼가","시청.용인대","명지대","김량장","용인중앙시장","고진","보평","둔전","전대.에버랜드"]]},{"k":"공항철도","name":"공항철도","badge":"공항","color":"#0090D2","tier":2,"loop":false,"arms":[["서울역","공덕","홍대입구","디지털미디어시티","마곡나루","김포공항","계양","검암","청라국제도시","영종","운서","공항화물청사","인천공항1터미널","인천공항2터미널"]]},{"k":"GTX-A","name":"GTX-A","badge":"A","color":"#9A6292","tier":1,"loop":false,"arms":[["운정중앙","킨텍스","대곡","연신내","서울역"],["수서","성남","구성","동탄"]]}];
 // ═════════════════════════ 내 출근길 만들기 (수도권 전 노선) ═════════════════════════
 // 노선·역 순서 데이터: github.com/rlnrlnworld/subway (route-order.json) 기반, 역 부기명(괄호) 제거
+// 보정: 신분당선 순서 바로잡음, GTX-A 미개통 구간(서울역–수서) 분리, 서해선 '…역' 표기 통일, 동명이역(5호선 양평·경의선 신촌) 구분
 // 지선은 분기역으로 이어지는 그래프로 합치고, 두 역 사이 최단 경로로 구간을 만든다.
 const TIER_NOTE = ['', '쉬움', '보통', '어려움', '지옥'];
 const MIN_STOPS = 3, MAX_STOPS = 14;
@@ -2846,47 +2866,174 @@ function makeCustomLine(L, a, b) {
     routeLabel: `${a} → ${b}`, desc: `내 출근길 · ${a} → ${b} · ${stops}개 역`,
   };
 }
-function fillSelect(sel, items, value) {
-  sel.innerHTML = '';
-  for (const it of items) { const o = document.createElement('option'); o.value = it; o.textContent = it; sel.append(o); }
-  if (value != null && items.includes(value)) sel.value = value;
+// ═════════════════════════ 출발역·도착역만 입력 → 환승 포함 실제 경로 ═════════════════════════
+// 노선별 한 정거장 평균 소요(분) — 역 간격이 긴 광역 노선은 크게, 9호선은 급행 효과로 작게. 환승은 걷기+대기 포함 약 7분
+const HOP_MIN = { '9호선': 1.6, 'GTX-A': 8, '공항철도': 4, '신분당선': 3, '경강': 3, '서해': 3, '경춘': 3, '경의중앙': 2.5, '1호선': 2.5, '수인분당': 2.2 };
+const hopMin = L => HOP_MIN[L.k] || 2;
+const XFER_MIN = 7;
+const MAX_TOTAL_STOPS = 30, MAX_LEGS = 4;
+let JOURNEY = null, PLAN = null;
+const ALL_STATIONS = [...STATION_LINES.keys()].sort((a, b) => a.localeCompare(b, 'ko'));
+const cleanSt = s => String(s || '').replace(/\s+/g, '').replace(/\(.*?\)/g, '').replace(/역$/, '');
+function findStation(input) {
+  const q = cleanSt(input); if (!q) return null;
+  if (STATION_LINES.has(q)) return q;
+  if (STATION_LINES.has(q + '역')) return q + '역';      // "서울역"처럼 '역'이 이름에 붙은 경우
+  return null;
 }
-function curMetro() { return METRO.find(L => L.k === $('rLine').value) || METRO[1]; }
-function initRouteForm() {
-  const saved = lsGet('ss.route2', { line: '2호선', from: '신도림', to: '강남' });
-  const rl = $('rLine'); rl.innerHTML = '';
-  for (const L of METRO) { const o = document.createElement('option'); o.value = L.k; o.textContent = `${L.badge} ${L.name} · ${TIER_NOTE[L.tier]}`; rl.append(o); }
-  rl.value = METRO.some(L => L.k === saved.line) ? saved.line : '2호선';
-  const refill = (keep) => {
-    const L = curMetro(); metroGraph(L);
-    fillSelect($('rFrom'), L.order, keep && keep.from);
-    fillSelect($('rTo'), L.order, keep && keep.to || L.order[Math.min(L.order.length - 1, 6)]);
-    updateRouteInfo();
+function suggest(input) { const q = cleanSt(input); return q ? ALL_STATIONS.filter(s => s.startsWith(q)).slice(0, 4) : []; }
+
+// 노선×역 노드 그래프 위의 최단 시간 경로 (다익스트라)
+function planRoute(from, to) {
+  const key = (li, s) => li + '|' + s;
+  const dist = new Map(), prev = new Map(), done = new Set();
+  const lineIdx = METRO.map((L, i) => i);
+  const startNodes = lineIdx.filter(i => metroGraph(METRO[i]).has(from));
+  const heap = [];
+  for (const i of startNodes) { const k = key(i, from); dist.set(k, 0); heap.push([0, i, from]); }
+  let best = null;
+  while (heap.length) {
+    heap.sort((a, b) => a[0] - b[0]);
+    const [d, li, s] = heap.shift(); const k = key(li, s);
+    if (done.has(k)) continue; done.add(k);
+    if (s === to) { best = k; break; }
+    const nb = [];
+    for (const v of metroGraph(METRO[li]).get(s)) nb.push([d + hopMin(METRO[li]), li, v]);
+    for (const lj of lineIdx) if (lj !== li && metroGraph(METRO[lj]).has(s)) nb.push([d + XFER_MIN, lj, s]);
+    for (const [nd, nl, ns] of nb) { const nk = key(nl, ns); if (nd < (dist.get(nk) ?? Infinity)) { dist.set(nk, nd); prev.set(nk, k); heap.push([nd, nl, ns]); } }
+  }
+  if (!best) return null;
+  const nodes = []; for (let k = best; k; k = prev.get(k)) { const [li, s] = k.split('|'); nodes.push({ li: +li, s }); }
+  nodes.reverse();
+  // 같은 노선끼리 묶어 구간(leg)으로
+  const legs = [];
+  for (const n of nodes) {
+    const last = legs[legs.length - 1];
+    if (last && last.li === n.li) { if (last.path[last.path.length - 1] !== n.s) last.path.push(n.s); }
+    else legs.push({ li: n.li, path: [n.s] });
+  }
+  const real = legs.filter(l => l.path.length > 1);
+  return { from, to, minutes: dist.get(best), legs: real.map(l => ({ metro: METRO[l.li], path: l.path })) };
+}
+function makeLegLine(L, path) {
+  const base = LINES.find(x => x.diff === L.tier) || LINES[1];
+  const xfer = {};
+  for (const s of path) { const o = [...(STATION_LINES.get(s) || [])].filter(n => n !== L.name); if (o.length) xfer[s] = o.join(', '); }
+  const stops = path.length - 1;
+  return {
+    ...base, id: `${L.k}:${path[0]}-${path[stops]}`, custom: true, name: L.name, badge: L.badge, color: L.color,
+    stations: path, transfer: Object.keys(xfer), xfer,
+    villains: Math.max(stops >= 3 ? 2 : 0, Math.min(base.villains, stops - 1)),
+    routeLabel: `${path[0]} → ${path[stops]}`, desc: `${L.name} ${path[0]} → ${path[stops]} · ${stops}개 역`,
   };
-  rl.onchange = () => refill(null);
-  $('rFrom').onchange = $('rTo').onchange = updateRouteInfo;
+}
+function journeyRankLine(plan) {
+  return { id: `J:${plan.from}-${plan.to}`, custom: true, name: '내 출근길', badge: '🗺️', color: '#7a5cff', stars: '', routeLabel: `${plan.from} → ${plan.to}` };
+}
+const rankLine = () => (JOURNEY ? JOURNEY.rank : LINE);
+
+function initRouteForm() {
+  const dl = $('stationList'); dl.innerHTML = '';
+  for (const s of ALL_STATIONS) { const o = document.createElement('option'); o.value = s; dl.append(o); }
+  const saved = lsGet('ss.trip', { from: '신도림', to: '강남' });
+  $('rFrom').value = saved.from; $('rTo').value = saved.to;
+  $('rFrom').oninput = $('rTo').oninput = updateRouteInfo;
   $('rSwap').onclick = () => { const a = $('rFrom').value; $('rFrom').value = $('rTo').value; $('rTo').value = a; updateRouteInfo(); };
   $('rGo').onclick = () => {
-    if (!CUSTOM) return;
-    lsSet('ss.route2', { line: rl.value, from: $('rFrom').value, to: $('rTo').value });
-    startLine(CUSTOM);
+    if (!PLAN) return;
+    lsSet('ss.trip', { from: PLAN.from, to: PLAN.to });
+    startJourney(PLAN);
   };
-  refill(saved);
+  updateRouteInfo();
+}
+function legChip(leg) {
+  const s = document.createElement('span'); s.className = 'leg'; s.style.setProperty('--lc', leg.metro.color);
+  s.textContent = `${leg.metro.badge} ${leg.metro.name} ${leg.path[0]} → ${leg.path[leg.path.length - 1]} · ${leg.path.length - 1}역`;
+  return s;
 }
 function updateRouteInfo() {
-  const L = curMetro(), a = $('rFrom').value, b = $('rTo').value;
-  const info = $('rInfo'), go = $('rGo');
-  const path = routePath(L, a, b);
-  CUSTOM = null; go.disabled = true;
-  if (!path) { info.textContent = '출발역과 도착역을 다르게 골라 주세요.'; return; }
-  const stops = path.length - 1;
-  if (stops < MIN_STOPS) { info.textContent = `${stops}개 역은 너무 짧아요. ${MIN_STOPS}개 역 이상으로 골라 주세요.`; return; }
-  if (stops > MAX_STOPS) { info.textContent = `${stops}개 역은 한 판으로 너무 길어요. ${MAX_STOPS}개 역 이하로 골라 주세요. (환승역에서 끊어 타기 추천)`; return; }
-  CUSTOM = makeCustomLine(L, a, b);
-  go.disabled = false;
-  const mid = path.length > 5 ? `${path.slice(0, 3).join(' → ')} → … → ${path[path.length - 1]}` : path.join(' → ');
-  const n = boardFor(CUSTOM).length;
-  info.textContent = `${mid} · ${stops}개 역 · 환승역 ${CUSTOM.transfer.length}곳 · 난이도 ${'★'.repeat(L.tier)} ${TIER_NOTE[L.tier]}` + (L.loop ? ' · 순환선은 짧은 방향으로' : '') + (RK.state === 'live' ? ` · 오늘 이 구간 출근자 ${n}명` : '');
+  const info = $('rInfo'), legsEl = $('rLegs'), go = $('rGo');
+  PLAN = null; go.disabled = true; legsEl.innerHTML = '';
+  const fi = $('rFrom').value, ti = $('rTo').value;
+  const a = findStation(fi), b = findStation(ti);
+  if (!a || !b) {
+    const bad = !a ? fi : ti, sg = suggest(bad);
+    info.textContent = !bad.trim() ? '출발역과 도착역을 입력하세요.' : `"${bad}" 역을 찾을 수 없어요.` + (sg.length ? ` 혹시: ${sg.join(', ')}` : '');
+    return;
+  }
+  if (a === b) { info.textContent = '출발역과 도착역이 같아요.'; return; }
+  const plan = planRoute(a, b);
+  if (!plan || !plan.legs.length) { info.textContent = '두 역을 잇는 경로를 찾지 못했어요.'; return; }
+  const stops = plan.legs.reduce((n, l) => n + l.path.length - 1, 0);
+  for (const l of plan.legs) legsEl.append(legChip(l));
+  const xf = plan.legs.length - 1;
+  info.textContent = `총 ${stops}개 역 · 환승 ${xf}회 · 약 ${Math.round(plan.minutes)}분`;
+  if (plan.legs.length > MAX_LEGS) { info.textContent += ` — 환승 ${MAX_LEGS - 1}회까지만 플레이할 수 있어요.`; return; }
+  if (stops > MAX_TOTAL_STOPS) { info.textContent += ` — 한 판으로 너무 길어요 (최대 ${MAX_TOTAL_STOPS}역).`; return; }
+  if (stops < MIN_STOPS) { info.textContent += ` — 너무 짧아요 (${MIN_STOPS}역 이상).`; return; }
+  PLAN = plan; go.disabled = false;
+  const n = boardFor(journeyRankLine(plan)).length;
+  if (RK.state === 'live') info.textContent += ` · 오늘 같은 경로 출근자 ${n}명`;
+}
+
+function startJourney(plan) {
+  JOURNEY = { plan, rank: journeyRankLine(plan), legs: plan.legs.map(l => ({ line: makeLegLine(l.metro, l.path), metro: l.metro })), idx: 0, rows: [], sat: 0 };
+  startLine(JOURNEY.legs[0].line);
+}
+function resetJourneyForRestart() {
+  if (!JOURNEY) return;
+  JOURNEY.idx = 0; JOURNEY.rows = []; JOURNEY.sat = 0;
+  LINE = JOURNEY.legs[0].line;
+}
+const legLabel = () => JOURNEY ? ` · ${JOURNEY.idx + 1}/${JOURNEY.legs.length}구간` : '';
+
+// 한 구간이 끝남 (앉아서 가거나, 서서 환승역/도착역까지)
+function legDone(sat, remain) {
+  const J = JOURNEY, leg = J.legs[J.idx];
+  const lbl = `${leg.line.name} ${leg.line.routeLabel}`;
+  J.rows.push(...stage1Rows());
+  J.rows.push(sat ? ['🪑', `${lbl}: ${remain}역 앉아서`, remain * 150] : ['🧍', `${lbl}: 서서 감`, 0]);
+  if (sat) J.sat++;
+  const keep = { manner: P.manner, counters: P.counters, disc: P.disc || 0, ear: P.ear, caffeine: P.caffeine, bag: P.bag, phone: P.phone };
+  if (J.idx < J.legs.length - 1) {
+    J.idx++;
+    const next = J.legs[J.idx], st = next.line.stations[0];
+    const f = $('fade');
+    f.innerHTML = `<b>🔁 환승</b><span>${st}역 · ${leg.line.name} → ${next.line.name}</span><span style="font-size:12px;color:#9aa3b8">갈아타는 승강장에서 다시 줄을 서세요</span>`;
+    f.classList.add('show');
+    const t = `${next.line.name}${josaRo(next.line.name)} 갈아타실 고객께서는 ${next.line.name} 타는 곳으로 가시기 바랍니다.`;
+    speak(t, { interrupt: true });
+    setTimeout(() => {
+      const keepVoice = voiceOn; voiceOn = false;   // newStage1의 방송 끊김 방지
+      for (const fl of G.floats) fl.el.remove();
+      setLine(next.line);
+      newStage1();
+      Object.assign(P, keep); P.parts.phone.visible = P.phone; setBagLook();
+      P.disc = keep.disc * .8;                // 걷는 동안 조금 진정
+      G.t = 6;                                  // 환승 이동 시간만큼 줄이 조금 길어져 있음
+      stageTitle(`환승 ${J.idx}/${J.legs.length - 1}`, `${next.line.name} 타는 곳 · ${next.line.routeLabel}`);
+      announce(`${st}역 ${next.line.name} 타는 곳. 노란 발자국 줄 끝에 서세요!`, 3.5);
+      voiceOn = keepVoice;
+      enterPlatform();
+      G.started = true;
+      setTimeout(() => f.classList.remove('show'), 300);
+    }, 1600);
+    return;
+  }
+  // 최종 도착
+  const all = J.sat === J.legs.length, some = J.sat > 0;
+  showEnd(some, [
+    ...J.rows,
+    ['😌', `도착 불쾌지수 ${Math.round(P.disc || 0)}`, Math.round((100 - (P.disc || 0)) * 3)],
+    ['🙏', `매너 점수 ${P.manner}`, P.manner * 10],
+    ['🚨', `빌런 참교육 ${P.counters}회`, P.counters * 300],
+  ], {
+    kind: some ? 'seat' : 'stand',
+    emoji: all ? '🪑👑' : some ? '🪑✨' : '🧍😩',
+    title: all ? '완벽한 착석 출근!' : some ? '도착!' : '서서 도착…',
+    desc: `${J.plan.from} → ${J.plan.to} · ${J.legs.length}개 구간 중 ${J.sat}구간 앉아서 감`,
+    rank: all ? '👑 환승의 신' : some ? '🥇 착석 출근러' : '만원 지하철의 생존자',
+  });
 }
 
 // ═════════════════════════ 루프 ═════════════════════════
@@ -2900,6 +3047,7 @@ function loop(now) {
 }
 function start() {
   audio();
+  resetJourneyForRestart();
   seedRun();
   if (!LINE) setLine(LINES[1]);
   else setLine(LINE);
@@ -2926,7 +3074,7 @@ initRanking();
 initRouteForm();
 requestAnimationFrame(loop);
 window.__game = { get G() { return G; }, get P() { return P; }, get seats() { return seats; }, get people() { return people; }, start,
-  get gates() { return gates; }, get qlines() { return qlines; }, LINES, startLine, stage2(c = null) { newGame(c); G.started = true; }, setSchedule(o) { SCHEDULE = o; },
+  get gates() { return gates; }, get qlines() { return qlines; }, get JOURNEY() { return JOURNEY; }, LINES, startLine, planRoute, startJourney, stage2(c = null) { newGame(c); G.started = true; }, setSchedule(o) { SCHEDULE = o; },
   step(sec) { for (let t = 0; t < sec; t += 1 / 30) { if (G.stage === 1) { updateStage1(1 / 30); updateRing(); } else { update(1 / 30); updateSeatsVisual(); } updateCamera(1 / 30); drawHUD(); } } };
 </script>
 </body>
